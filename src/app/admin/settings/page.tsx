@@ -27,7 +27,6 @@ export default function AdminSettingsPage() {
     } catch {
       setSettings(defaultSettings)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { loadSettings() }, [loadSettings])
@@ -63,29 +62,29 @@ export default function AdminSettingsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">إعدادات النظام</h1>
-        <button onClick={handleSave} disabled={saving} className="btn-primary inline-flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-white">إعدادات النظام</h1>
+        <button onClick={handleSave} disabled={saving} className="admin-btn-primary">
           <Save size={18} />
           {saving ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}
         </button>
       </div>
 
       {message && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.includes('بنجاح') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+        <div className={`mb-4 px-4 py-3 rounded-xl text-sm ${message.includes('بنجاح') ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/15 text-red-400 border border-red-500/20'}`}>
           {message}
         </div>
       )}
 
-      <div className="card">
+      <div className="admin-card">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {fields.map((field) => (
             <div key={field.key}>
-              <label className="label-field">{field.label}</label>
+              <label className="admin-label">{field.label}</label>
               <input
                 type={field.type}
                 value={settings[field.key] || ''}
                 onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-                className="input-field"
+                className="admin-input"
               />
             </div>
           ))}

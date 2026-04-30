@@ -18,10 +18,10 @@ export default function AuthCallbackPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center bg-[#060d1b]" dir="rtl">
       <div className="text-center">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-gray-500">جارٍ تسجيل الدخول...</p>
+        <div className="animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-slate-400">جارٍ تسجيل الدخول...</p>
       </div>
     </div>
   )

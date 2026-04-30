@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, Send } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -52,27 +52,37 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-indigo-50 via-white to-purple-50 px-4" dir="rtl">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-[#060d1b] px-4" dir="rtl">
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-violet-500/5 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-3xl font-bold gradient-text">سيندر برو</Link>
-          <p className="text-gray-500 mt-2">أنشئ حسابك المجاني — تجربة يومين</p>
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 shadow-lg shadow-sky-500/20">
+              <Send className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold gradient-text-brand">سيندر برو</span>
+          </Link>
+          <p className="text-slate-400 mt-3">أنشئ حسابك المجاني — تجربة يومين</p>
         </div>
 
-        <div className="card">
+        <div className="gradient-border p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm">
               {error}
             </div>
           )}
 
-          <div className="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-lg mb-4 text-sm text-center">
+          <div className="bg-sky-500/10 border border-sky-500/20 text-sky-400 px-4 py-3 rounded-xl mb-4 text-sm text-center">
             جرّب سيندر برو مجاناً ليومين — بدون بطاقة ائتمانية
           </div>
 
           <a
             href="/api/auth/signin/google"
-            className="flex items-center justify-center gap-2 w-full border border-gray-200 rounded-lg py-2.5 px-4 font-medium text-gray-700 hover:bg-gray-50 transition-colors mb-4"
+            className="flex items-center justify-center gap-2 w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 font-medium text-slate-300 hover:bg-white/10 hover:border-white/15 transition-all mb-4"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -84,21 +94,21 @@ export default function RegisterPage() {
           </a>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-sm text-gray-400">أو بالبريد الإلكتروني</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-sm text-slate-500">أو بالبريد الإلكتروني</span>
+            <div className="flex-1 h-px bg-white/10" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label-field">الاسم الكامل</label>
+              <label className="admin-label">الاسم الكامل</label>
               <div className="relative">
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="input-field pr-10"
+                  className="admin-input pr-10"
                   placeholder="أدخل اسمك"
                   required
                   minLength={2}
@@ -107,14 +117,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="label-field">البريد الإلكتروني</label>
+              <label className="admin-label">البريد الإلكتروني</label>
               <div className="relative">
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pr-10"
+                  className="admin-input pr-10"
                   placeholder="example@email.com"
                   required
                 />
@@ -122,14 +132,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="label-field">كلمة المرور</label>
+              <label className="admin-label">كلمة المرور</label>
               <div className="relative">
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pr-10 pl-10"
+                  className="admin-input pr-10 pl-10"
                   placeholder="6 أحرف على الأقل"
                   required
                   minLength={6}
@@ -137,7 +147,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -145,14 +155,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="label-field">تأكيد كلمة المرور</label>
+              <label className="admin-label">تأكيد كلمة المرور</label>
               <div className="relative">
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field pr-10"
+                  className="admin-input pr-10"
                   placeholder="أعد إدخال كلمة المرور"
                   required
                 />
@@ -162,15 +172,15 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full justify-center text-base py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-slate-500 mt-6">
             لديك حساب بالفعل؟{' '}
-            <Link href="/auth/login" className="text-indigo-500 hover:text-indigo-600 font-semibold">
+            <Link href="/auth/login" className="text-sky-400 hover:text-sky-300 font-semibold">
               تسجيل الدخول
             </Link>
           </p>

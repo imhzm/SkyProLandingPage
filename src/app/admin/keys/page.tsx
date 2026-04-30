@@ -19,7 +19,7 @@ interface ActivationKey {
 
 export default function AdminKeysPage() {
   const [keys, setKeys] = useState<ActivationKey[]>([])
-  const [, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -46,7 +46,6 @@ export default function AdminKeysPage() {
 
   useEffect(() => {
     loadKeys()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
   const handleGenerate = async () => {
@@ -61,9 +60,11 @@ export default function AdminKeysPage() {
       if (data.success) {
         setShowGenerate(false)
         loadKeys()
+      } else {
+        alert(data.error || 'فشل إنشاء المفاتيح')
       }
     } catch {
-      console.error('Generate failed')
+      alert('فشل الاتصال بالخادم')
     } finally {
       setGenerating(false)
     }
@@ -76,80 +77,54 @@ export default function AdminKeysPage() {
   }
 
   const statusLabel = (status: string) => {
-    const map: Record<string, string> = {
-      available: 'متاح',
-      assigned: 'مخصص',
-      active: 'مفعّل',
-      expired: 'منتهي',
-      revoked: 'ملغى'
-    }
+    const map: Record<string, string> = { available: 'متاح', assigned: 'مخصص', active: 'مفعّل', expired: 'منتهي', revoked: 'ملغى' }
     return map[status] || status
   }
 
   const statusClass = (status: string) => {
-    const map: Record<string, string> = {
-      available: 'badge-info',
-      assigned: 'badge-warning',
-      active: 'badge-success',
-      expired: 'badge-danger',
-      revoked: 'badge-danger'
-    }
-    return map[status] || 'badge'
+    const map: Record<string, string> = { available: 'admin-badge-info', assigned: 'admin-badge-warning', active: 'admin-badge-success', expired: 'admin-badge-danger', revoked: 'admin-badge-danger' }
+    return map[status] || 'admin-badge'
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">إدارة المفاتيح</h1>
-        <button onClick={() => setShowGenerate(true)} className="btn-primary inline-flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-white">إدارة المفاتيح</h1>
+        <button onClick={() => setShowGenerate(true)} className="admin-btn-primary">
           <Plus size={18} />
           إنشاء مفاتيح
         </button>
       </div>
 
       {showGenerate && (
-        <div className="card mb-6 border-2 border-indigo-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">إنشاء مفاتيح جديدة</h3>
+        <div className="admin-card mb-6 !border-sky-500/30 !border">
+          <h3 className="text-lg font-bold text-white mb-4">إنشاء مفاتيح جديدة</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="label-field">عدد المفاتيح</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={generateCount}
-                onChange={(e) => setGenerateCount(parseInt(e.target.value) || 1)}
-                className="input-field"
-              />
+              <label className="admin-label">عدد المفاتيح</label>
+              <input type="number" min="1" max="100" value={generateCount} onChange={(e) => setGenerateCount(parseInt(e.target.value) || 1)} className="admin-input" />
             </div>
             <div>
-              <label className="label-field">الحد الأقصى للأجهزة لكل مفتاح</label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={generateMaxDevices}
-                onChange={(e) => setGenerateMaxDevices(parseInt(e.target.value) || 1)}
-                className="input-field"
-              />
+              <label className="admin-label">الحد الأقصى للأجهزة لكل مفتاح</label>
+              <input type="number" min="1" max="10" value={generateMaxDevices} onChange={(e) => setGenerateMaxDevices(parseInt(e.target.value) || 1)} className="admin-input" />
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={generating} className="btn-success">
+            <button onClick={handleGenerate} disabled={generating} className="admin-btn-success">
               {generating ? 'جارٍ الإنشاء...' : 'إنشاء'}
             </button>
-            <button onClick={() => setShowGenerate(false)} className="btn-secondary">إلغاء</button>
+            <button onClick={() => setShowGenerate(false)} className="admin-btn-secondary">إلغاء</button>
           </div>
         </div>
       )}
 
-      <div className="card mb-4">
-        <div className="flex gap-2 mb-4">
+      <div className="admin-card mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {['', 'available', 'active', 'expired', 'revoked'].map((s) => (
             <button
               key={s}
-              onClick={() => { setStatusFilter(s); setPage(1); }}
-              className={`px-3 py-1 rounded-lg text-sm transition-colors ${statusFilter === s ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              onClick={() => { setStatusFilter(s); setPage(1); loadKeys(); }}
+              className={statusFilter === s ? 'admin-filter-btn-active' : 'admin-filter-btn-inactive'}
             >
               {s === '' ? 'الكل' : statusLabel(s)}
             </button>
@@ -157,48 +132,54 @@ export default function AdminKeysPage() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>المفتاح</th>
-                <th>الحالة</th>
-                <th>الخطة</th>
-                <th>الأجهزة</th>
-                <th>المستخدم</th>
-                <th>الانتهاء</th>
-                <th>إنشاء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((key) => (
-                <tr key={key.id}>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{key.keyCode}</code>
-                      <button onClick={() => copyKey(key.keyCode)} className="p-1 text-gray-400 hover:text-indigo-500">
-                        {copied === key.keyCode ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                  </td>
-                  <td><span className={statusClass(key.status)}>{statusLabel(key.status)}</span></td>
-                  <td className="font-medium">{key.plan}</td>
-                  <td>{key.devicesCount}/{key.maxDevices}</td>
-                  <td className="text-sm">{key.user?.email || '—'}</td>
-                  <td className="text-sm">{key.expiresAt ? new Date(key.expiresAt).toLocaleDateString('ar-EG') : '—'}</td>
-                  <td className="text-sm">{new Date(key.createdAt).toLocaleDateString('ar-EG')}</td>
+      <div className="admin-card">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full" />
+          </div>
+        ) : (
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>المفتاح</th>
+                  <th>الحالة</th>
+                  <th>الخطة</th>
+                  <th>الأجهزة</th>
+                  <th>المستخدم</th>
+                  <th>الانتهاء</th>
+                  <th>إنشاء</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {keys.map((key) => (
+                  <tr key={key.id}>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <code className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded font-mono text-slate-300">{key.keyCode}</code>
+                        <button onClick={() => copyKey(key.keyCode)} className="p-1 text-slate-500 hover:text-sky-400 transition-colors">
+                          {copied === key.keyCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                    <td><span className={statusClass(key.status)}>{statusLabel(key.status)}</span></td>
+                    <td className="font-medium text-white">{key.plan}</td>
+                    <td className="text-slate-300">{key.devicesCount}/{key.maxDevices}</td>
+                    <td className="text-slate-400">{key.user?.email || '—'}</td>
+                    <td className="text-slate-500">{key.expiresAt ? new Date(key.expiresAt).toLocaleDateString('ar-EG') : '—'}</td>
+                    <td className="text-slate-500">{new Date(key.createdAt).toLocaleDateString('ar-EG')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4">
-            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="btn-secondary !py-1.5 !px-3 disabled:opacity-50">السابق</button>
-            <span className="text-sm text-gray-500">{page} من {totalPages}</span>
-            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="btn-secondary !py-1.5 !px-3 disabled:opacity-50">التالي</button>
+            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50">السابق</button>
+            <span className="text-sm text-slate-500">{page} من {totalPages}</span>
+            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50">التالي</button>
           </div>
         )}
       </div>

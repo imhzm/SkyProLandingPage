@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock, Send } from 'lucide-react'
 
 export default function ResetPasswordForm() {
   const router = useRouter()
@@ -55,43 +55,52 @@ export default function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-indigo-50 via-white to-purple-50 px-4" dir="rtl">
-        <div className="w-full max-w-md card text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✓</span>
+      <div className="min-h-screen flex items-center justify-center bg-[#060d1b] px-4" dir="rtl">
+        <div className="gradient-border p-8 text-center max-w-md w-full">
+          <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl text-emerald-400">✓</span>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">تم إعادة التعيين بنجاح</h2>
-          <p className="text-gray-600">يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة</p>
+          <h2 className="text-xl font-bold text-white mb-2">تم إعادة التعيين بنجاح</h2>
+          <p className="text-slate-400">يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-indigo-50 via-white to-purple-50 px-4" dir="rtl">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-[#060d1b] px-4" dir="rtl">
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-3xl font-bold gradient-text">سيندر برو</Link>
-          <p className="text-gray-500 mt-2">إعادة تعيين كلمة المرور</p>
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 shadow-lg shadow-sky-500/20">
+              <Send className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold gradient-text-brand">سيندر برو</span>
+          </Link>
+          <p className="text-slate-400 mt-3">إعادة تعيين كلمة المرور</p>
         </div>
 
-        <div className="card">
+        <div className="gradient-border p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label-field">كلمة المرور الجديدة</label>
+              <label className="admin-label">كلمة المرور الجديدة</label>
               <div className="relative">
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pr-10 pl-10"
+                  className="admin-input pr-10 pl-10"
                   placeholder="6 أحرف على الأقل"
                   required
                   minLength={6}
@@ -99,7 +108,7 @@ export default function ResetPasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -107,14 +116,14 @@ export default function ResetPasswordForm() {
             </div>
 
             <div>
-              <label className="label-field">تأكيد كلمة المرور</label>
+              <label className="admin-label">تأكيد كلمة المرور</label>
               <div className="relative">
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field pr-10"
+                  className="admin-input pr-10"
                   placeholder="أعد إدخال كلمة المرور"
                   required
                 />
@@ -124,7 +133,7 @@ export default function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'جارٍ إعادة التعيين...' : 'إعادة تعيين كلمة المرور'}
             </button>

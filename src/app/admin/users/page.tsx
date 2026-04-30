@@ -18,7 +18,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
-  const [, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
@@ -41,7 +41,6 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
   const updateStatus = async (userId: number, status: string) => {
@@ -52,116 +51,121 @@ export default function AdminUsersPage() {
     })
     const data = await res.json()
     if (data.success) loadUsers()
+    else alert(data.error || 'فشلت العملية')
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">إدارة المستخدمين</h1>
-      </div>
+      <h1 className="text-2xl font-bold text-white mb-6">إدارة المستخدمين</h1>
 
-      <div className="card mb-6">
+      <div className="admin-card mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
             <input
               type="text"
               placeholder="بحث بالاسم أو البريد..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pr-10"
+              className="admin-input pr-10"
               onKeyDown={(e) => e.key === 'Enter' && loadUsers()}
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="select-field w-full sm:w-40"
+            className="admin-select w-full sm:w-40"
           >
             <option value="">كل الحالات</option>
             <option value="active">نشط</option>
             <option value="suspended">معلق</option>
             <option value="deleted">محذوف</option>
           </select>
-          <button onClick={loadUsers} className="btn-primary whitespace-nowrap">بحث</button>
+          <button onClick={loadUsers} className="admin-btn-primary">بحث</button>
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>الاسم</th>
-                <th>البريد</th>
-                <th>الدور</th>
-                <th>الحالة</th>
-                <th>المفاتيح</th>
-                <th>الأجهزة</th>
-                <th>التسجيل</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="font-medium">{user.name || '—'}</td>
-                  <td className="text-sm">{user.email}</td>
-                  <td>
-                    <span className={`badge ${user.role === 'admin' ? 'badge-info' : 'badge-warning'}`}>
-                      {user.role === 'admin' ? 'أدمن' : 'مستخدم'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${user.status === 'active' ? 'badge-success' : user.status === 'suspended' ? 'badge-danger' : 'badge-warning'}`}>
-                      {user.status === 'active' ? 'نشط' : user.status === 'suspended' ? 'معلق' : 'محذوف'}
-                    </span>
-                  </td>
-                  <td>{user.keysCount}</td>
-                  <td>{user.devicesCount}</td>
-                  <td className="text-sm">{new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
-                  <td>
-                    <div className="flex gap-1">
-                      {user.status === 'active' && (
-                        <button
-                          onClick={() => updateStatus(user.id, 'suspended')}
-                          className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"
-                          title="تعليق"
-                        >
-                          <Ban size={16} />
-                        </button>
-                      )}
-                      {user.status === 'suspended' && (
-                        <button
-                          onClick={() => updateStatus(user.id, 'active')}
-                          className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"
-                          title="تفعيل"
-                        >
-                          <UserCheck size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+      <div className="admin-card">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full" />
+          </div>
+        ) : (
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>الاسم</th>
+                  <th>البريد</th>
+                  <th>الدور</th>
+                  <th>الحالة</th>
+                  <th>المفاتيح</th>
+                  <th>الأجهزة</th>
+                  <th>التسجيل</th>
+                  <th>إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="font-medium text-white">{user.name || '—'}</td>
+                    <td className="text-slate-400">{user.email}</td>
+                    <td>
+                      <span className={user.role === 'admin' ? 'admin-badge-info' : 'admin-badge-warning'}>
+                        {user.role === 'admin' ? 'أدمن' : 'مستخدم'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={user.status === 'active' ? 'admin-badge-success' : user.status === 'suspended' ? 'admin-badge-danger' : 'admin-badge-warning'}>
+                        {user.status === 'active' ? 'نشط' : user.status === 'suspended' ? 'معلق' : 'محذوف'}
+                      </span>
+                    </td>
+                    <td className="text-slate-300">{user.keysCount}</td>
+                    <td className="text-slate-300">{user.devicesCount}</td>
+                    <td className="text-slate-500">{new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
+                    <td>
+                      <div className="flex gap-1">
+                        {user.status === 'active' && (
+                          <button
+                            onClick={() => updateStatus(user.id, 'suspended')}
+                            className="p-1.5 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                            title="تعليق"
+                          >
+                            <Ban size={16} />
+                          </button>
+                        )}
+                        {user.status === 'suspended' && (
+                          <button
+                            onClick={() => updateStatus(user.id, 'active')}
+                            className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            title="تفعيل"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="btn-secondary !py-1.5 !px-3 disabled:opacity-50"
+              className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50"
             >
               السابق
             </button>
-            <span className="text-sm text-gray-500">{page} من {totalPages}</span>
+            <span className="text-sm text-slate-500">{page} من {totalPages}</span>
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="btn-secondary !py-1.5 !px-3 disabled:opacity-50"
+              className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50"
             >
               التالي
             </button>

@@ -23,7 +23,7 @@ interface Device {
 
 export default function AdminDevicesPage() {
   const [devices, setDevices] = useState<Device[]>([])
-  const [, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -44,7 +44,6 @@ export default function AdminDevicesPage() {
 
   useEffect(() => {
     loadDevices()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
   const resetDevice = async (deviceId: number) => {
@@ -53,70 +52,77 @@ export default function AdminDevicesPage() {
       const res = await fetch(`/api/admin/devices?id=${deviceId}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) loadDevices()
+      else alert(data.error || 'فشلت العملية')
     } catch {
-      console.error('Reset failed')
+      alert('فشل الاتصال بالخادم')
     }
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">إدارة الأجهزة</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">إدارة الأجهزة</h1>
 
-      <div className="card">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>المستخدم</th>
-                <th>المفتاح</th>
-                <th>اسم الجهاز</th>
-                <th>نظام التشغيل</th>
-                <th>المعالج</th>
-                <th>الرام</th>
-                <th>الحالة</th>
-                <th>إعادة التعيين</th>
-                <th>آخر نشاط</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map((device) => (
-                <tr key={device.id}>
-                  <td className="font-medium">{device.user?.name || device.user?.email || '—'}</td>
-                  <td className="text-sm font-mono">{device.key?.keyCode || '—'}</td>
-                  <td>{device.deviceName || '—'}</td>
-                  <td className="text-sm">{device.osInfo || '—'}</td>
-                  <td className="text-sm">{device.cpuInfo || '—'}</td>
-                  <td>{device.ramInfo || '—'}</td>
-                  <td>
-                    <span className={`badge ${device.isActive ? 'badge-success' : 'badge-danger'}`}>
-                      {device.isActive ? 'نشط' : 'معطل'}
-                    </span>
-                  </td>
-                  <td className="text-sm">{device.resetCount}/{device.maxResetsPerYear}</td>
-                  <td className="text-sm">{new Date(device.lastSeenAt).toLocaleDateString('ar-EG')}</td>
-                  <td>
-                    {device.isActive && (
-                      <button
-                        onClick={() => resetDevice(device.id)}
-                        className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"
-                        title="إعادة تعيين الجهاز"
-                      >
-                        <RotateCcw size={16} />
-                      </button>
-                    )}
-                  </td>
+      <div className="admin-card">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full" />
+          </div>
+        ) : (
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>المستخدم</th>
+                  <th>المفتاح</th>
+                  <th>اسم الجهاز</th>
+                  <th>نظام التشغيل</th>
+                  <th>المعالج</th>
+                  <th>الرام</th>
+                  <th>الحالة</th>
+                  <th>إعادة التعيين</th>
+                  <th>آخر نشاط</th>
+                  <th>إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {devices.map((device) => (
+                  <tr key={device.id}>
+                    <td className="font-medium text-white">{device.user?.name || device.user?.email || '—'}</td>
+                    <td className="text-sm font-mono text-slate-400">{device.key?.keyCode || '—'}</td>
+                    <td className="text-slate-300">{device.deviceName || '—'}</td>
+                    <td className="text-slate-400">{device.osInfo || '—'}</td>
+                    <td className="text-slate-400">{device.cpuInfo || '—'}</td>
+                    <td className="text-slate-300">{device.ramInfo || '—'}</td>
+                    <td>
+                      <span className={device.isActive ? 'admin-badge-success' : 'admin-badge-danger'}>
+                        {device.isActive ? 'نشط' : 'معطل'}
+                      </span>
+                    </td>
+                    <td className="text-slate-400">{device.resetCount}/{device.maxResetsPerYear}</td>
+                    <td className="text-slate-500">{new Date(device.lastSeenAt).toLocaleDateString('ar-EG')}</td>
+                    <td>
+                      {device.isActive && (
+                        <button
+                          onClick={() => resetDevice(device.id)}
+                          className="p-1.5 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                          title="إعادة تعيين الجهاز"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4">
-            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="btn-secondary !py-1.5 !px-3 disabled:opacity-50">السابق</button>
-            <span className="text-sm text-gray-500">{page} من {totalPages}</span>
-            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="btn-secondary !py-1.5 !px-3 disabled:opacity-50">التالي</button>
+            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50">السابق</button>
+            <span className="text-sm text-slate-500">{page} من {totalPages}</span>
+            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="admin-btn-secondary !py-1.5 !px-3 disabled:opacity-50">التالي</button>
           </div>
         )}
       </div>
