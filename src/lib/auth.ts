@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { verifyPassword } from '@/lib/utils'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,

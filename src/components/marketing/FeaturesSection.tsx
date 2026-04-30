@@ -5,36 +5,41 @@ import { motion } from 'framer-motion'
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="features" className="py-24 relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#060d1b] via-[#0a1020] to-[#060d1b]" />
+      <div className="relative z-10 section-shell">
         <div className="text-center mb-16">
-          <h2 className="section-title">منصات مدعومة</h2>
-          <p className="section-desc mt-2">أتمت حملاتك التسويقية على أكثر من 18 منصة تواصل اجتماعي</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/20 px-4 py-1.5 text-[12px] font-semibold text-sky-400 mb-4">
+            المنصات المدعومة
+          </div>
+          <h2 className="section-title">أتمت حملاتك على <span className="gradient-text">18+ منصة</span></h2>
+          <p className="section-desc mt-3 max-w-2xl mx-auto">استخراج بيانات، إرسال جماعي، إدارة حسابات — كل شيء من مكان واحد</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {platforms.map((platform, i) => (
             <motion.div
               key={platform.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: Math.min(i * 0.05, 0.5) }}
-              className="card hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+              transition={{ delay: Math.min(i * 0.04, 0.5), duration: 0.4 }}
+              className="glass-card p-5 group cursor-default"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{platform.icon}</span>
-                <h3 className="text-lg font-bold text-gray-900">{platform.name}</h3>
-                <span
-                  className="w-3 h-3 rounded-full mr-auto"
-                  style={{ backgroundColor: platform.color }}
-                />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-2xl" style={{ background: `${platform.color}18` }}>
+                  {platform.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-white text-[15px]">{platform.name}</h3>
+                </div>
+                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: platform.color }} />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {platform.features.map((f) => (
                   <span
                     key={f}
-                    className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors"
+                    className="inline-flex items-center rounded-lg bg-white/5 border border-white/6 px-2.5 py-1 text-[11px] font-medium text-slate-400 group-hover:border-white/10 group-hover:text-slate-300 transition-colors"
                   >
                     {f}
                   </span>

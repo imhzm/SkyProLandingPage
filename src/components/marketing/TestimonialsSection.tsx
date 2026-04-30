@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Star } from 'lucide-react'
 
 const testimonials = [
   {
@@ -8,65 +9,87 @@ const testimonials = [
     role: 'مدير تسويق',
     company: 'شركة النور للتجارة',
     text: 'سيندر برو وفّر علينا ساعات من العمل اليومي. حملاتنا التسويقية على فيسبوك واتساب أصبحت أسرع 10 مرات.',
-    rating: 5
+    rating: 5,
+    color: 'from-sky-400 to-blue-600',
   },
   {
     name: 'سارة علي',
     role: 'صاحبة متجر إلكتروني',
     company: 'متجر روز',
     text: 'من أفضل الأدوات اللي استخدمتها. استخراج بيانات العملاء من جوجل مابس ساعدني أوصل لعملاء جداد بسهولة.',
-    rating: 5
+    rating: 5,
+    color: 'from-violet-400 to-purple-600',
   },
   {
     name: 'محمد خالد',
     role: 'مدير مبيعات',
     company: 'مجموعة الخليج',
-    text: 'إدارة حسابات متعددة في نفس الوقت ميزة رهيبة. والدعم الفني ممتاز - بيردوا في دقائق.',
-    rating: 5
+    text: 'إدارة حسابات متعددة في نفس الوقت ميزة رهيبة. والدعم الفني ممتاز — بيردوا في دقائق.',
+    rating: 5,
+    color: 'from-amber-400 to-orange-600',
   },
   {
     name: 'فاطمة حسن',
     role: 'مسؤولة تسويق',
     company: 'وكالة ديجيتال بلس',
     text: 'نظام الحماية من الحظر فعلاً شغال. قبل سيندر برو كنا بنحظر كل يوم، الحمد لله الموضوع اتظبط.',
-    rating: 5
-  }
+    rating: 5,
+    color: 'from-emerald-400 to-green-600',
+  },
+  {
+    name: 'عمر فاروق',
+    role: 'رائد أعمال',
+    company: 'أوفيس ماركت',
+    text: 'الجدولة التلقائية للحملات خلصتني من متابعة كل حملة لحالها. بضغطة واحدة الحملة بتشتغل وتخلص لوحدها.',
+    rating: 5,
+    color: 'from-rose-400 to-pink-600',
+  },
+  {
+    name: 'نورهان أحمد',
+    role: 'صانعة محتوى',
+    company: 'فري لانسر',
+    text: 'بدون سيندر برو كنت بضيع ساعات في استخراج الداتا. حالياً بدقائق بلقّي كل اللي محتاجاه.',
+    rating: 5,
+    color: 'from-cyan-400 to-teal-600',
+  },
 ]
 
 export function TestimonialsSection() {
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#060d1b] via-[#0a1020] to-[#060d1b]" />
+      <div className="relative z-10 section-shell">
         <div className="text-center mb-16">
-          <h2 className="section-title">ماذا يقول عملاؤنا</h2>
-          <p className="section-desc mt-2">آراء حقيقية من مستخدمين يثقون في سيندر برو</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 text-[12px] font-semibold text-amber-400 mb-4">
+            آراء العملاء
+          </div>
+          <h2 className="section-title">ماذا يقول <span className="gradient-text">عملاؤنا</span></h2>
+          <p className="section-desc mt-3">آراء حقيقية من مستخدمين يثقون في سيندر برو</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {testimonials.map((t, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="card"
+              transition={{ delay: i * 0.08 }}
+              className="glass-card p-6 flex flex-col"
             >
-              <div className="flex items-center gap-1 mb-3">
+              <div className="flex items-center gap-1 mb-4">
                 {Array.from({ length: t.rating }).map((_, si) => (
-                  <svg key={si} className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
+                  <Star key={si} className="w-4 h-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="text-gray-700 leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-bl from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+              <p className="text-slate-300 leading-relaxed mb-6 flex-1">&ldquo;{t.text}&rdquo;</p>
+              <div className="flex items-center gap-3 pt-4 border-t border-white/6">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${t.color} text-white font-bold text-sm shrink-0`}>
                   {t.name.charAt(0)}
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{t.name}</p>
-                  <p className="text-sm text-gray-500">{t.role} — {t.company}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-white text-sm">{t.name}</p>
+                  <p className="text-xs text-slate-500 truncate">{t.role} — {t.company}</p>
                 </div>
               </div>
             </motion.div>

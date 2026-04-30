@@ -1,45 +1,101 @@
 'use client'
 
+import { Send, Mail, Phone } from 'lucide-react'
+
+const footerLinks = {
+  product: [
+    { label: 'المميزات', href: '#features' },
+    { label: 'الأسعار', href: '#pricing' },
+    { label: 'الأسئلة الشائعة', href: '#faq' },
+    { label: 'تحميل التطبيق', href: '#download' },
+  ],
+  support: [
+    { label: 'مركز المساعدة', href: '#' },
+    { label: 'تواصل معنا', href: '#' },
+    { label: 'الشروط والأحكام', href: '#' },
+    { label: 'سياسة الخصوصية', href: '#' },
+  ],
+  platforms: [
+    { label: 'فيسبوك', href: '#' },
+    { label: 'واتساب', href: '#' },
+    { label: 'انستغرام', href: '#' },
+    { label: 'تويتر / X', href: '#' },
+  ],
+}
+
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-xl font-bold text-white mb-4">سيندر برو</h3>
-            <p className="text-sm leading-relaxed">
-              أقوى أداة تسويق آلي لمنصات التواصل الاجتماعي. أتمت حملاتك التسويقية بسهولة واحترافية.
+    <footer className="border-t border-white/6 bg-[#040a15]">
+      <div className="section-shell py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          {/* Brand */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 shadow-lg shadow-sky-500/20">
+                <Send className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span className="font-display text-lg font-bold text-white">سيندر برو</span>
+                <span className="block text-[10px] text-slate-600">by Sky Wave</span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 leading-relaxed max-w-sm mb-6">
+              أقوى أداة تسويق آلي لمنصات التواصل الاجتماعي. منتج من Sky Wave — وكالة النمو الرقمي.
             </p>
+            <div className="flex items-center gap-3">
+              <a href="mailto:admin@skywaveads.com" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-white hover:border-white/15 transition-all">
+                <Mail className="h-4 w-4" />
+              </a>
+              <a href="https://wa.me/201067894321" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-white hover:border-white/15 transition-all">
+                <Phone className="h-4 w-4" />
+              </a>
+            </div>
           </div>
+
+          {/* Links */}
           <div>
-            <h4 className="font-semibold text-white mb-4">روابط سريعة</h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#features" className="hover:text-indigo-400 transition-colors">المميزات</a></li>
-              <li><a href="#pricing" className="hover:text-indigo-400 transition-colors">الأسعار</a></li>
-              <li><a href="#faq" className="hover:text-indigo-400 transition-colors">الأسئلة الشائعة</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">تحميل التطبيق</a></li>
+            <h4 className="font-semibold text-white mb-4 text-sm">المنتج</h4>
+            <ul className="space-y-2.5">
+              {footerLinks.product.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                </li>
+              ))}
             </ul>
           </div>
+
           <div>
-            <h4 className="font-semibold text-white mb-4">الدعم</h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">مركز المساعدة</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">تواصل معنا</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">الشروط والأحكام</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">سياسة الخصوصية</a></li>
+            <h4 className="font-semibold text-white mb-4 text-sm">الدعم</h4>
+            <ul className="space-y-2.5">
+              {footerLinks.support.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                </li>
+              ))}
             </ul>
           </div>
+
           <div>
-            <h4 className="font-semibold text-white mb-4">تواصل معنا</h4>
-            <ul className="space-y-2 text-sm">
-              <li>البريد: support@skywaveads.com</li>
-              <li>واتساب: +20 100 123 4567</li>
-              <li>القاهرة، مصر</li>
+            <h4 className="font-semibold text-white mb-4 text-sm">المنصات</h4>
+            <ul className="space-y-2.5">
+              {footerLinks.platforms.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm">
-          <p>© {new Date().getFullYear()} سيندر برو — Sky Wave Ads. جميع الحقوق محفوظة.</p>
+
+        <div className="border-t border-white/6 mt-12 pt-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-600">
+              © {new Date().getFullYear()} سيندر برو — Sky Wave Ads. جميع الحقوق محفوظة.
+            </p>
+            <p className="text-sm text-slate-600">
+              صناعة مصر 🇪🇬
+            </p>
+          </div>
         </div>
       </div>
     </footer>
