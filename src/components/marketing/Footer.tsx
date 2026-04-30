@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Mail, Phone, MessageCircle } from 'lucide-react'
+import { Send, Mail, Phone, MessageCircle, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { PlatformIcon } from '@/components/marketing/PlatformIcon'
 import { platforms } from '@/data/platforms'
@@ -14,7 +14,7 @@ const footerLinks = {
   ],
   support: [
     { label: 'مركز المساعدة', href: '#' },
-    { label: 'تواصل معنا', href: '#' },
+    { label: 'تواصل معنا', href: 'https://wa.me/201067894321' },
     { label: 'الشروط والأحكام', href: '#' },
     { label: 'سياسة الخصوصية', href: '#' },
   ],
@@ -22,6 +22,7 @@ const footerLinks = {
 
 export function Footer() {
   const topPlatforms = platforms.slice(0, 8)
+  const otherPlatforms = platforms.slice(8, 16)
 
   return (
     <footer className="border-t border-white/6 bg-[#040a15]">
@@ -50,6 +51,9 @@ export function Footer() {
               <a href="tel:+201067894321" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-white hover:border-white/15 transition-all">
                 <Phone className="h-4 w-4" />
               </a>
+              <a href="https://skypro.skywaveads.com" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-white hover:border-white/15 transition-all">
+                <Globe className="h-4 w-4" />
+              </a>
             </div>
           </div>
 
@@ -73,7 +77,11 @@ export function Footer() {
             <ul className="space-y-2.5">
               {footerLinks.support.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                  {link.href.startsWith('http') ? (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                  ) : (
+                    <a href={link.href} className="text-sm text-slate-500 hover:text-white transition-colors">{link.label}</a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -81,8 +89,20 @@ export function Footer() {
 
           <div className="lg:col-span-4">
             <h4 className="font-semibold text-white mb-4 text-sm">المنصات</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 mb-3">
               {topPlatforms.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/platforms/${p.id}`}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <PlatformIcon id={p.id} size={14} className="shrink-0" style={{ color: p.color }} />
+                  {p.name}
+                </Link>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {otherPlatforms.map((p) => (
                 <Link
                   key={p.id}
                   href={`/platforms/${p.id}`}
@@ -99,10 +119,10 @@ export function Footer() {
         <div className="border-t border-white/6 mt-12 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-slate-600">
-              © {new Date().getFullYear()} سيندر برو — Sky Wave Ads. جميع الحقوق محفوظة.
+              &copy; {new Date().getFullYear()} سيندر برو — Sky Wave Ads. جميع الحقوق محفوظة.
             </p>
             <p className="text-sm text-slate-600">
-              صناعة مصر 🇪🇬
+              صناعة مصر
             </p>
           </div>
         </div>

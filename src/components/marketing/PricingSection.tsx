@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Shield, RotateCcw, CreditCard } from 'lucide-react'
+import { Check, Shield, RotateCcw, CreditCard, Zap, Clock, Headphones, TrendingUp } from 'lucide-react'
 
 const features = [
   'جميع المنصات الـ 18+ متاحة',
@@ -16,14 +16,21 @@ const features = [
 ]
 
 const guarantees = [
-  { icon: Shield, title: 'دفع آمن', desc: 'فودافون كاش أو تحويل بنكي' },
-  { icon: RotateCcw, title: 'ضمان استرجاع', desc: '7 أيام استرجاع كامل' },
-  { icon: CreditCard, title: 'بدون التزام', desc: 'اشتراك سنوي بدون تجديد تلقائي' },
+  { icon: Shield, title: 'دفع آمن', desc: 'فودافون كاش أو تحويل بنكي', color: 'text-sky-400' },
+  { icon: RotateCcw, title: 'ضمان استرجاع', desc: '7 أيام استرجاع كامل', color: 'text-emerald-400' },
+  { icon: CreditCard, title: 'بدون التزام', desc: 'اشتراك سنوي بدون تجديد تلقائي', color: 'text-violet-400' },
+]
+
+const highlights = [
+  { icon: Zap, text: 'بدون رسوم خفية', color: 'text-sky-400' },
+  { icon: Clock, text: 'تفعيل فوري', color: 'text-emerald-400' },
+  { icon: Headphones, text: 'دعم 24/7', color: 'text-violet-400' },
+  { icon: TrendingUp, text: 'تحديثات مستمرة', color: 'text-amber-400' },
 ]
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="py-24 relative">
+    <section id="pricing" className="py-28 relative">
       <div className="absolute inset-0 bg-[#060d1b]" />
       <div className="absolute top-0 left-1/3 w-[600px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-1/3 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-[100px]" />
@@ -39,7 +46,6 @@ export function PricingSection() {
 
         <div className="max-w-lg mx-auto">
           <div className="gradient-border relative overflow-hidden p-8 sm:p-10">
-            {/* Popular badge */}
             <div className="absolute top-0 right-0 bg-gradient-to-r from-sky-500 to-violet-500 text-white text-[11px] font-bold px-5 py-1.5 rounded-bl-2xl">
               الأكثر شعبية
             </div>
@@ -52,7 +58,16 @@ export function PricingSection() {
                 <span className="text-6xl font-extrabold gradient-text-brand">2,000</span>
                 <span className="text-2xl text-slate-400 font-semibold">ج.م</span>
               </div>
-              <p className="text-sm text-slate-600 mb-10">سنوياً — أقل من 167 ج.م/شهر</p>
+              <p className="text-sm text-slate-600 mb-8">سنوياً — أقل من 167 ج.م/شهر</p>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+                {highlights.map((h) => (
+                  <span key={h.text} className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-[12px] font-medium">
+                    <h.icon className={`h-3.5 w-3.5 ${h.color}`} />
+                    <span className="text-slate-300">{h.text}</span>
+                  </span>
+                ))}
+              </div>
 
               <div className="space-y-3.5 text-right mb-10">
                 {features.map((feature) => (
@@ -77,7 +92,7 @@ export function PricingSection() {
           {guarantees.map((item) => (
             <div key={item.title} className="text-center glass-card p-5 rounded-2xl">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/6 border border-white/8 mx-auto mb-3">
-                <item.icon className="h-5 w-5 text-sky-400" />
+                <item.icon className={`h-5 w-5 ${item.color}`} />
               </div>
               <h4 className="font-bold text-white mb-1">{item.title}</h4>
               <p className="text-sm text-slate-500">{item.desc}</p>

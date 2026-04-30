@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
+import { Star, Quote } from 'lucide-react'
 
 const testimonials = [
   {
@@ -54,10 +54,17 @@ const testimonials = [
   },
 ]
 
+const stats = [
+  { value: '4.9', label: 'تقييم المستخدمين' },
+  { value: '10K+', label: 'مستخدم نشط' },
+  { value: '98%', label: 'نسبة الرضا' },
+]
+
 export function TestimonialsSection() {
   return (
-    <section className="py-24 relative">
+    <section className="py-28 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-[#060d1b] via-[#0a1020] to-[#060d1b]" />
+      <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[150px]" />
       <div className="relative z-10 section-shell">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 text-[12px] font-semibold text-amber-400 mb-4">
@@ -67,7 +74,16 @@ export function TestimonialsSection() {
           <p className="section-desc mt-3">آراء حقيقية من مستخدمين يثقون في سيندر برو</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6 mb-14 max-w-2xl mx-auto">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center glass-card p-4 rounded-2xl">
+              <div className="stat-value text-2xl sm:text-3xl">{stat.value}</div>
+              <div className="text-xs sm:text-sm text-slate-500 mt-1">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {testimonials.map((t, i) => (
             <motion.div
               key={i}
@@ -75,14 +91,15 @@ export function TestimonialsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="glass-card p-6 flex flex-col"
+              className="glass-card p-6 flex flex-col group"
             >
               <div className="flex items-center gap-1 mb-4">
                 {Array.from({ length: t.rating }).map((_, si) => (
                   <Star key={si} className="w-4 h-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="text-slate-300 leading-relaxed mb-6 flex-1">&ldquo;{t.text}&rdquo;</p>
+              <Quote className="h-5 w-5 text-white/10 mb-3 rotate-180" />
+              <p className="text-slate-300 leading-relaxed mb-6 flex-1 text-[15px]">&ldquo;{t.text}&rdquo;</p>
               <div className="flex items-center gap-3 pt-4 border-t border-white/6">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${t.color} text-white font-bold text-sm shrink-0`}>
                   {t.name.charAt(0)}
