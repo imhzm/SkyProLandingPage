@@ -3,18 +3,76 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ChevronDown, ArrowRight, Zap, Shield, Clock, Users } from 'lucide-react'
+import { Check, ChevronDown, ArrowRight, Zap, Shield, Clock, Users, Star, Monitor, Sparkles } from 'lucide-react'
 import { PlatformIcon } from '@/components/marketing/PlatformIcon'
 import type { PlatformPageData } from '@/data/platform-pages'
 
-const benefitIcons = [Zap, Shield, Clock, Users]
+const sectionIcons = [Zap, Shield, Clock, Users]
+
+function getComparison(platform: PlatformPageData): { feature: string; us: string; them: string }[] {
+  const comps: Record<string, { feature: string; us: string; them: string }[]> = {
+    facebook: [
+      { feature: 'استخراج بيانات الأعضاء', us: 'غير محدود', them: 'محدود أو غير متوفر' },
+      { feature: 'إرسال رسائل جماعية', us: 'تأخير ذكي + حماية', them: 'بدون حماية' },
+      { feature: 'السعر', us: '2,000 ج.م/سنة', them: '5,000+ ج.م/سنة' },
+      { feature: 'عدد المنصات', us: '18+ منصة', them: '1-3 منصات' },
+      { feature: 'الدعم الفني', us: 'مصري 24/7', them: 'أجنبي محدود' },
+    ],
+    whatsapp: [
+      { feature: 'إرسال رسائل جماعية', us: 'تأخير ذكي + حماية', them: 'بدون حماية' },
+      { feature: 'استخراج المجموعات', us: 'متوفر', them: 'غير متوفر' },
+      { feature: 'تصفية الأرقام', us: 'متوفر', them: 'غير متوفر' },
+      { feature: 'السعر', us: '2,000 ج.م/سنة', them: '4,000+ ج.م/سنة' },
+      { feature: 'عدد المنصات', us: '18+', them: 'واتساب فقط' },
+    ],
+  }
+  return comps[platform.id] || [
+    { feature: 'عدد المنصات', us: '18+ منصة', them: '1-3 منصات' },
+    { feature: 'السعر', us: '2,000 ج.م/سنة', them: '5,000+ ج.م/سنة' },
+    { feature: 'الدعم الفني', us: 'مصري 24/7', them: 'أجنبي محدود' },
+    { feature: 'الحماية من الحظر', us: 'متقدمة', them: 'بدون حماية' },
+    { feature: 'تحديثات مستمرة', us: 'مجانية', them: 'مدفوعة' },
+  ]
+}
+
+function getTestimonial(platform: PlatformPageData): { name: string; role: string; text: string }[] {
+  const testimonials: Record<string, { name: string; role: string; text: string }[]> = {
+    facebook: [
+      { name: 'أحمد محمد', role: 'صاحب متجر إلكتروني', text: 'سيندر برو وفّر عليّ ساعات يومياً. حملات فيسبوك صارت أسرع 10 مرات والنتايج أحسن بكثير.' },
+      { name: 'سارة علي', role: 'مديرة تسويق', text: 'أفضل أداة استخدمتها. استخراج الأعضاء من الجروبات وسيلة لا تقدر بثمن.' },
+    ],
+    whatsapp: [
+      { name: 'محمد خالد', role: 'مدير مبيعات', text: 'حملات واتساب بتوصل لعملاء حقيقيين. معدل الاستجابة 45% — أفضل من أي أداة تانية.' },
+      { name: 'فاطمة حسن', role: 'صاحبة متجر', text: 'تصفية الأرقام وفرّت وقت كتير. بقت أرسل بس للأرقام الفعّالة.' },
+    ],
+    instagram: [
+      { name: 'نورهان أحمد', role: 'صانعة محتوى', text: 'المتابعة التلقائية زودت متابعيني 3 مرات في شهر. وأفضل شيء إنها آمنة.' },
+      { name: 'عمر فاروق', role: 'رائد أعمال', text: 'رسائل DM المخصصة جابتلي عملاء حقيقيين. أفضل استثمار سويته.' },
+    ],
+  }
+  return testimonials[platform.id] || [
+    { name: 'محمد أحمد', role: 'مسوق رقمي', text: `سيندر برو غيّر طريقة عملي على ${platform.arabicName}. الأتمتة وفرّت عليّ وقت كتير والنتايج أحسن بكتير.` },
+  ]
+}
+
+function getHighlights(platform: PlatformPageData): string[] {
+  const highlights: Record<string, string[]> = {
+    facebook: ['لا حاجة لخبرة تقنية', 'تشغيل تلقائي 24/7', 'حماية متقدمة من الحظر', 'تحديثات مستمرة مجانية', 'دعم فني مصري', 'اشتراك سنوي بدون رسوم خفية'],
+    whatsapp: ['تصفية تلقائية للأرقام', 'قوالب رسائل متغيرة', 'إيقاف ذكي عند الأخطاء', 'حسابات متعددة', 'تقارير مفصلة', 'سعر تنافسي 2,000 ج.م/سنة'],
+    instagram: ['متابعة تلقائية ذكية', 'رسائل DM مخصصة', 'حدود آمنة', 'إشارة تلقائية', 'حماية من القيود', 'تصدير CSV و Excel'],
+  }
+  return highlights[platform.id] || [
+    'تشغيل تلقائي 24/7', 'حماية متقدمة من الحظر', 'حسابات متعددة',
+    'تحديثات مستمرة مجانية', 'دعم فني مصري', 'سعر تنافسي 2,000 ج.م/سنة',
+  ]
+}
 
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
+      viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className={className}
     >
@@ -33,7 +91,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
       >
         <span className="text-white font-semibold text-[15px]">{q}</span>
         <ChevronDown
-          className={`w-5 h-5 text-sky-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-sky-400 shrink-0 transition-transform duration-300 mr-3 ${open ? 'rotate-180' : ''}`}
         />
       </button>
       <motion.div
@@ -49,79 +107,63 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export function PlatformPageContent({ data }: { data: PlatformPageData }) {
+  const highlights = getHighlights(data)
+  const comparison = getComparison(data)
+  const testimonials = getTestimonial(data)
+
   return (
-    <main className="min-h-screen bg-[#060d1b]">
-      <section className="relative pt-28 pb-20 overflow-hidden">
+    <main className="min-h-screen bg-[#060d1b] pt-16">
+      {/* ===== HERO ===== */}
+      <section className="relative pt-20 pb-24 overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#060d1b] via-[#0a1938] to-[#060d1b]" />
-          <div
-            className="absolute top-10 w-[700px] h-[500px] rounded-full blur-[160px] opacity-15"
-            style={{ background: data.color, right: '5%' }}
-          />
-          <div
-            className="absolute bottom-0 w-[400px] h-[400px] rounded-full blur-[140px] opacity-10"
-            style={{ background: '#8B2CF5', left: '5%' }}
-          />
+          <div className="absolute top-10 w-[700px] h-[500px] rounded-full blur-[160px] opacity-15" style={{ background: data.color, right: '5%' }} />
+          <div className="absolute bottom-0 w-[400px] h-[400px] rounded-full blur-[140px] opacity-10" style={{ background: '#8B2CF5', left: '5%' }} />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
         </div>
 
         <div className="relative z-10 section-shell">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="text-center mb-16"
-          >
-            <Link
-              href="/platforms"
-              className="inline-flex items-center gap-2 text-slate-500 hover:text-white text-sm mb-8 transition-colors"
-            >
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-center mb-16">
+            <Link href="/platforms" className="inline-flex items-center gap-2 text-slate-500 hover:text-white text-sm mb-8 transition-colors">
               <ArrowRight className="h-4 w-4" />
               جميع المنصات
             </Link>
 
-            <div className="flex items-center justify-center gap-5 mb-6">
-              <div
-                className="flex h-20 w-20 items-center justify-center rounded-3xl shadow-2xl"
-                style={{ background: `linear-gradient(135deg, ${data.color}30, ${data.color}10)`, border: `1px solid ${data.color}30` }}
-              >
+            <div className="flex items-center justify-center gap-5 mb-8">
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl shadow-2xl" style={{ background: `linear-gradient(135deg, ${data.color}30, ${data.color}10)`, border: `1px solid ${data.color}30` }}>
                 <PlatformIcon id={data.id} size={40} style={{ color: data.color }} />
               </div>
               <div className="text-right">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">
-                  {data.arabicName}
-                </h1>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">{data.arabicName}</h1>
                 <p className="text-xl sm:text-2xl gradient-text-brand font-bold">سيندر برو</p>
               </div>
             </div>
 
-            <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-4">
-              {data.tagline}
-            </p>
-            <p className="text-base text-slate-500 max-w-2xl mx-auto leading-relaxed">
-              {data.heroDescription}
-            </p>
+            <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed mb-4">{data.tagline}</p>
+            <p className="text-base text-slate-500 max-w-2xl mx-auto leading-relaxed mb-10">{data.heroDescription}</p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
-              <Link href="/auth/register" className="btn-primary text-lg px-10 py-4 shadow-2xl shadow-sky-500/20">
-                ابدأ مجاناً
-              </Link>
-              <a href="#features" className="btn-secondary text-lg px-8 py-4">
-                تعرّف على المميزات
-              </a>
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+              <Link href="/auth/register" className="btn-primary text-lg px-10 py-4 shadow-2xl shadow-sky-500/20">ابدأ مجاناً</Link>
+              <a href="#features" className="btn-secondary text-lg px-8 py-4">اكتشف المميزات</a>
+            </div>
+
+            {/* Highlights row */}
+            <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto">
+              {highlights.map((h) => (
+                <span key={h} className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3.5 py-1.5 text-[12px] font-medium text-slate-400">
+                  <Check className="h-3 w-3 text-emerald-400" />
+                  {h}
+                </span>
+              ))}
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto"
-          >
+          {/* Stats */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }} className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {data.stats.map((s, i) => {
-              const Icon = benefitIcons[i % benefitIcons.length]
+              const Icon = sectionIcons[i % sectionIcons.length]
               return (
-                <div key={i} className="glass-card p-4 text-center">
+                <div key={i} className="glass-card p-5 text-center">
                   <Icon className="h-4 w-4 mx-auto mb-2" style={{ color: data.color }} />
                   <div className="stat-value text-2xl sm:text-3xl">{s.value}</div>
                   <div className="text-sm text-slate-400 mt-1">{s.label}</div>
@@ -132,11 +174,76 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
         </div>
       </section>
 
+      {/* ===== MOCKUP / VISUAL ===== */}
+      <section className="py-12">
+        <div className="section-shell">
+          <Section>
+            <div className="relative mx-auto max-w-4xl">
+              <div className="gradient-border p-1 overflow-hidden">
+                <div className="rounded-[20px] bg-[#0a1020] p-4 sm:p-6">
+                  {/* Fake browser chrome */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                    <div className="flex-1 bg-white/5 rounded-lg h-7 mx-4 flex items-center px-3">
+                      <Monitor className="h-3 w-3 text-slate-500 ml-2" />
+                      <span className="text-[11px] text-slate-600 mr-auto">senderpro.skywaveads.com/{data.id}</span>
+                    </div>
+                  </div>
+                  {/* Fake dashboard */}
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-3 space-y-2">
+                      <div className="rounded-lg bg-white/5 h-8 flex items-center px-3" style={{ borderInlineStart: `2px solid ${data.color}` }}>
+                        <PlatformIcon id={data.id} size={14} style={{ color: data.color }} />
+                        <span className="text-[10px] text-slate-500 mr-2">{data.arabicName}</span>
+                      </div>
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="rounded-lg bg-white/[0.03] h-6" />
+                      ))}
+                    </div>
+                    <div className="col-span-9 space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        {data.stats.slice(0, 3).map((s, i) => (
+                          <div key={i} className="rounded-lg bg-white/5 p-3 text-center">
+                            <div className="text-sm font-bold" style={{ color: data.color }}>{s.value}</div>
+                            <div className="text-[9px] text-slate-600">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="rounded-lg bg-white/[0.03] h-24 flex items-center justify-center">
+                        <div className="flex gap-1 items-end h-16">
+                          {[40, 65, 45, 80, 55, 90, 70, 85].map((h, i) => (
+                            <div key={i} className="w-3 rounded-t" style={{ height: `${h}%`, background: i === 5 ? data.color : `${data.color}30` }} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {data.features.slice(0, 2).map((f) => (
+                          <div key={f.title} className="rounded-lg bg-white/[0.03] p-2.5 flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: `${data.color}20` }}>
+                              <Check className="h-3 w-3" style={{ color: data.color }} />
+                            </div>
+                            <span className="text-[10px] text-slate-500">{f.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Section>
+        </div>
+      </section>
+
+      {/* ===== FEATURES ===== */}
       <section id="features" className="py-20">
         <div className="section-shell">
           <Section>
             <div className="text-center mb-14">
               <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/20 px-4 py-1.5 text-[12px] font-semibold text-sky-400 mb-4">
+                <Sparkles className="h-3.5 w-3.5" />
                 المميزات
               </div>
               <h2 className="section-title gradient-text mb-3">مميزات {data.arabicName}</h2>
@@ -147,12 +254,9 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {data.features.map((f, i) => (
               <Section key={i}>
-                <div className="glass-card p-6 h-full">
+                <div className="glass-card p-6 h-full group">
                   <div className="flex items-start gap-4 mb-5">
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                      style={{ background: `${data.color}15` }}
-                    >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors group-hover:scale-110" style={{ background: `${data.color}15` }}>
                       <PlatformIcon id={data.id} size={24} style={{ color: data.color }} />
                     </div>
                     <div>
@@ -175,6 +279,7 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
         </div>
       </section>
 
+      {/* ===== HOW IT WORKS ===== */}
       <section className="py-20">
         <div className="section-shell">
           <Section>
@@ -182,21 +287,18 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
               <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 border border-violet-500/20 px-4 py-1.5 text-[12px] font-semibold text-violet-400 mb-4">
                 كيف يعمل
               </div>
-              <h2 className="section-title gradient-text mb-3">كيف يعمل؟</h2>
-              <p className="section-desc">ثلاث خطوات بسيطة لبدء التسويق الآلي على {data.arabicName}</p>
+              <h2 className="section-title gradient-text mb-3">ابدأ في <span className="gradient-text">3 خطوات</span></h2>
+              <p className="section-desc">من التسجيل إلى أول حملة — أقل من 5 دقائق</p>
             </div>
           </Section>
 
-          <div className="relative">
-            <div className="hidden md:block absolute top-20 left-[20%] right-[20%] h-px border-t-2 border-dashed border-white/10" />
+          <div className="relative max-w-4xl mx-auto">
+            <div className="hidden md:block absolute top-20 left-[16.67%] right-[16.67%] h-px border-t-2 border-dashed border-white/10" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {data.howItWorks.map((step, i) => (
                 <Section key={i}>
                   <div className="glass-card p-8 text-center h-full relative">
-                    <div
-                      className="inline-flex items-center justify-center w-16 h-16 rounded-full text-2xl font-bold mb-5 mx-auto"
-                      style={{ background: `linear-gradient(135deg, ${data.color}25, ${data.color}10)`, color: data.color, border: `2px solid ${data.color}30` }}
-                    >
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full text-2xl font-bold mb-5 mx-auto" style={{ background: `linear-gradient(135deg, ${data.color}25, ${data.color}10)`, color: data.color, border: `2px solid ${data.color}30` }}>
                       {i + 1}
                     </div>
                     <h3 className="text-lg font-bold text-white mb-2">{step.step}</h3>
@@ -206,9 +308,17 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
               ))}
             </div>
           </div>
+
+          <Section className="mt-12 text-center">
+            <Link href="/auth/register" className="btn-primary text-base px-8 py-3.5 shadow-2xl shadow-sky-500/20">
+              جرّب مجاناً — يومين
+              <ArrowRight className="h-4 w-4 rotate-180" />
+            </Link>
+          </Section>
         </div>
       </section>
 
+      {/* ===== USE CASES ===== */}
       <section className="py-20">
         <div className="section-shell">
           <Section>
@@ -216,19 +326,15 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
               <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 text-[12px] font-semibold text-amber-400 mb-4">
                 حالات الاستخدام
               </div>
-              <h2 className="section-title gradient-text mb-3">من يستخدم {data.arabicName} سيندر برو؟</h2>
-              <p className="section-desc">حالات الاستخدام الأكثر شيوعاً</p>
+              <h2 className="section-title gradient-text mb-3">من يستخدم {data.arabicName}؟</h2>
             </div>
           </Section>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {data.useCases.map((uc, i) => (
               <Section key={i}>
-                <div className="glass-card p-6 h-full">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                    style={{ background: `${data.color}15` }}
-                  >
+                <div className="glass-card p-6 h-full group">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors" style={{ background: `${data.color}15` }}>
                     <PlatformIcon id={data.id} size={22} style={{ color: data.color }} />
                   </div>
                   <h3 className="text-base font-bold text-white mb-2">{uc.title}</h3>
@@ -240,15 +346,97 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
         </div>
       </section>
 
+      {/* ===== COMPARISON TABLE ===== */}
       <section className="py-20">
         <div className="section-shell max-w-3xl">
           <Section>
             <div className="text-center mb-14">
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 text-[12px] font-semibold text-emerald-400 mb-4">
+                لماذا سيندر برو؟
+              </div>
+              <h2 className="section-title gradient-text mb-3">{data.arabicName} سيندر برو مقابل المنافسين</h2>
+            </div>
+          </Section>
+
+          <Section>
+            <div className="glass-card overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-right px-5 py-4 text-sm font-semibold text-slate-400">الميزة</th>
+                    <th className="text-center px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-bold gradient-text-brand">سيندر برو</span>
+                    </th>
+                    <th className="text-center px-5 py-4 text-sm font-semibold text-slate-500">المنافسون</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.map((row, i) => (
+                    <tr key={i} className="border-b border-white/5 last:border-0">
+                      <td className="text-right px-5 py-3.5 text-sm text-slate-300">{row.feature}</td>
+                      <td className="text-center px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400">
+                          <Check className="h-3.5 w-3.5" />
+                          {row.us}
+                        </span>
+                      </td>
+                      <td className="text-center px-5 py-3.5 text-sm text-slate-600">{row.them}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        </div>
+      </section>
+
+      {/* ===== TESTIMONIALS ===== */}
+      <section className="py-20">
+        <div className="section-shell">
+          <Section>
+            <div className="text-center mb-14">
               <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/20 px-4 py-1.5 text-[12px] font-semibold text-sky-400 mb-4">
+                آراء العملاء
+              </div>
+              <h2 className="section-title gradient-text mb-3">ماذا يقول عملاؤنا عن {data.arabicName}؟</h2>
+            </div>
+          </Section>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            {testimonials.map((t, i) => (
+              <Section key={i}>
+                <div className="glass-card p-6 h-full flex flex-col">
+                  <div className="flex items-center gap-1 mb-3">
+                    {Array.from({ length: 5 }).map((_, si) => (
+                      <Star key={si} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-slate-300 leading-relaxed text-sm flex-1 mb-4">&ldquo;{t.text}&rdquo;</p>
+                  <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-violet-500 text-white font-bold text-sm shrink-0">
+                      {t.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">{t.name}</p>
+                      <p className="text-xs text-slate-500">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              </Section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FAQ ===== */}
+      <section className="py-20">
+        <div className="section-shell max-w-3xl">
+          <Section>
+            <div className="text-center mb-14">
+              <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 border border-violet-500/20 px-4 py-1.5 text-[12px] font-semibold text-violet-400 mb-4">
                 أسئلة شائعة
               </div>
               <h2 className="section-title gradient-text mb-3">أسئلة شائعة عن {data.arabicName}</h2>
-              <p className="section-desc">إجابات على أكثر الأسئلة شيوعاً</p>
             </div>
           </Section>
 
@@ -262,16 +450,14 @@ export function PlatformPageContent({ data }: { data: PlatformPageData }) {
         </div>
       </section>
 
+      {/* ===== CTA ===== */}
       <section className="py-24">
         <div className="section-shell">
           <Section>
             <div className="gradient-border p-10 sm:p-16 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 via-transparent to-violet-500/5" />
               <div className="relative z-10">
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl mx-auto mb-6"
-                  style={{ background: `${data.color}20`, border: `1px solid ${data.color}30` }}
-                >
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl mx-auto mb-6" style={{ background: `${data.color}20`, border: `1px solid ${data.color}30` }}>
                   <PlatformIcon id={data.id} size={32} style={{ color: data.color }} />
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">

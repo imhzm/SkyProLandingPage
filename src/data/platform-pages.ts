@@ -21,6 +21,9 @@ export interface PlatformPageData {
   faq: { question: string; answer: string }[]
   useCases: { title: string; description: string }[]
   stats: { value: string; label: string }[]
+  highlights?: string[]
+  comparison?: { feature: string; us: string; competitor: string }[]
+  testimonial?: { name: string; role: string; text: string }[]
   schemaDescription: string
   schemaCategory: string
   schemaPrice: string

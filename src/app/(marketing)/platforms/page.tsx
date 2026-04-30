@@ -1,6 +1,9 @@
 import { Metadata } from 'next'
 import { platformPages, getPlatformIds } from '@/data/platform-pages'
 import { PlatformsListContent } from '@/components/marketing/PlatformsListContent'
+import { Navbar } from '@/components/marketing/Navbar'
+import { Footer } from '@/components/marketing/Footer'
+import { WhatsAppButton } from '@/components/marketing/WhatsAppButton'
 
 export const metadata: Metadata = {
   title: 'المنصات المدعومة | سيندر برو — 18+ منصة تسويق آلي',
@@ -39,7 +42,10 @@ export default function PlatformsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Navbar />
       <PlatformsListContent pages={pages} />
+      <Footer />
+      <WhatsAppButton />
     </>
   )
 }

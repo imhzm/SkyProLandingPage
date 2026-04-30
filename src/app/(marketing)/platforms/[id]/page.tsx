@@ -2,6 +2,9 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getPlatformIds, getPlatformPage } from '@/data/platform-pages'
 import { PlatformPageContent } from '@/components/marketing/PlatformPageContent'
+import { Navbar } from '@/components/marketing/Navbar'
+import { Footer } from '@/components/marketing/Footer'
+import { WhatsAppButton } from '@/components/marketing/WhatsAppButton'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -78,7 +81,10 @@ export default async function PlatformPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
+      <Navbar />
       <PlatformPageContent data={data} />
+      <Footer />
+      <WhatsAppButton />
     </>
   )
 }
