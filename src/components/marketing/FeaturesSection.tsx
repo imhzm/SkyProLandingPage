@@ -2,6 +2,9 @@
 
 import { platforms } from '@/data/platforms'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { PlatformIcon } from '@/components/marketing/PlatformIcon'
+import { ArrowLeft } from 'lucide-react'
 
 export function FeaturesSection() {
   return (
@@ -24,29 +27,43 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: Math.min(i * 0.04, 0.5), duration: 0.4 }}
-              className="glass-card p-5 group cursor-default"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-2xl" style={{ background: `${platform.color}18` }}>
-                  {platform.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white text-[15px]">{platform.name}</h3>
-                </div>
-                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: platform.color }} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {platform.features.map((f) => (
-                  <span
-                    key={f}
-                    className="inline-flex items-center rounded-lg bg-white/5 border border-white/6 px-2.5 py-1 text-[11px] font-medium text-slate-400 group-hover:border-white/10 group-hover:text-slate-300 transition-colors"
+              <Link
+                href={`/platforms/${platform.id}`}
+                className="glass-card p-5 group block"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0"
+                    style={{ background: `${platform.color}15` }}
                   >
-                    {f}
-                  </span>
-                ))}
-              </div>
+                    <PlatformIcon id={platform.id} size={22} className="shrink-0" style={{ color: platform.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-white text-[15px]">{platform.name}</h3>
+                  </div>
+                  <ArrowLeft className="h-4 w-4 text-slate-600 group-hover:text-sky-400 transition-colors shrink-0 rotate-180" />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {platform.features.map((f) => (
+                    <span
+                      key={f}
+                      className="inline-flex items-center rounded-lg bg-white/5 border border-white/6 px-2.5 py-1 text-[11px] font-medium text-slate-400 group-hover:border-white/10 group-hover:text-slate-300 transition-colors"
+                    >
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              </Link>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mt-12 text-center">
+          <Link href="/platforms" className="btn-secondary">
+            اكتشف كل المنصات بالتفصيل
+            <ArrowLeft className="h-4 w-4 rotate-180" />
+          </Link>
         </div>
       </div>
     </section>
