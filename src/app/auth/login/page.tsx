@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, Send } from 'lucide-react'
 
@@ -19,21 +20,22 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       })
-      const data = await res.json()
 
-      if (data.success) {
-        if (data.user?.role === 'admin') {
+      if (res?.ok && !res.error) {
+        const sessionRes = await fetch('/api/auth/me')
+        const sessionData = await sessionRes.json()
+        if (sessionData.success && sessionData.user?.role === 'admin') {
           router.push('/admin')
         } else {
           router.push('/')
         }
       } else {
-        setError(data.error || 'فشل تسجيل الدخول')
+        setError(res?.error || 'فشل تسجيل الدخول')
       }
     } catch {
       setError('فشل الاتصال بالخادم')
@@ -128,7 +130,7 @@ export default function LoginPage() {
 
           <a
             href="/api/auth/signin/google"
-            className="flex items-center justify-center gap-2 w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 font-medium text-slate-300 hover:bg-white/10 hover:border-white/15 transition-all"
+            className="flex items-center justify-center gap-2 w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 font-medium text-slate-300 hover:bg-white/10 hover:border-white/15 transition-all mb-4"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -140,7 +142,7 @@ export default function LoginPage() {
           </a>
 
           <p className="text-center text-sm text-slate-500 mt-6">
-            ليس لديك حساب؟{' '}
+            لديك حساب بالفعل؟{' '}
             <Link href="/auth/register" className="text-sky-400 hover:text-sky-300 font-semibold">
               أنشئ حساب مجاناً
             </Link>
