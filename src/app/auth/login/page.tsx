@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, Send } from 'lucide-react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,19 +25,20 @@ export default function LoginPage() {
       })
 
       if (res?.ok && !res.error) {
+        // Session is now established, check user role
         const sessionRes = await fetch('/api/auth/me')
         const sessionData = await sessionRes.json()
-        if (sessionData.success && sessionData.user?.role === 'admin') {
-          router.push('/admin')
+        if (sessionData.success && sessionData.data?.role === 'admin') {
+          window.location.href = '/admin'
         } else {
-          router.push('/')
+          window.location.href = '/'
         }
       } else {
         setError(res?.error || 'فشل تسجيل الدخول')
+        setLoading(false)
       }
     } catch {
       setError('فشل الاتصال بالخادم')
-    } finally {
       setLoading(false)
     }
   }
