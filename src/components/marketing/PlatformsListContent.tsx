@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ArrowLeft, Shield, Zap, Clock, Headphones, Star } from 'lucide-react'
+import { Check, ArrowLeft, Shield, Zap, Clock, Headphones, Star, Search } from 'lucide-react'
 import { PlatformIcon } from '@/components/marketing/PlatformIcon'
 import type { PlatformPageData } from '@/data/platform-pages'
 
@@ -13,7 +14,42 @@ const trustBadges = [
   { icon: Headphones, label: 'دعم فني مصري' },
 ]
 
+const categories = [
+  { id: 'all', label: 'الكل' },
+  { id: 'social', label: 'تواصل اجتماعي' },
+  { id: 'marketing', label: 'تسويق وأتمتة' },
+  { id: 'data', label: 'استخراج بيانات' },
+  { id: 'tools', label: 'أدوات مساعدة' },
+]
+
+function getCategory(id: string): string {
+  if (['facebook', 'whatsapp', 'instagram', 'twitter', 'linkedin', 'telegram', 'tiktok', 'pinterest', 'snapchat', 'threads', 'reddit'].includes(id)) return 'social'
+  if (['send-emails'].includes(id)) return 'marketing'
+  if (['google-maps', 'olx'].includes(id)) return 'data'
+  return 'tools'
+}
+
 export function PlatformsListContent({ pages }: { pages: PlatformPageData[] }) {
+  const [category, setCategory] = useState('all')
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    let result = pages
+    if (category !== 'all') {
+      result = result.filter(p => getCategory(p.id) === category)
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(p =>
+        p.arabicName.includes(q) ||
+        p.name.toLowerCase().includes(q) ||
+        p.tagline.includes(q) ||
+        p.features.some(f => f.title.includes(q))
+      )
+    }
+    return result
+  }, [pages, category, search])
+
   return (
     <main className="min-h-screen bg-[#060d1b]">
       <section className="relative pt-32 pb-20 overflow-hidden">
@@ -25,7 +61,7 @@ export function PlatformsListContent({ pages }: { pages: PlatformPageData[] }) {
         </div>
 
         <div className="relative z-10 section-shell">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-center mb-12">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-center mb-10">
             <Link href="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-white text-sm mb-8 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               الرئيسية
@@ -48,7 +84,7 @@ export function PlatformsListContent({ pages }: { pages: PlatformPageData[] }) {
           </motion.div>
 
           {/* Trust badges */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex flex-wrap items-center justify-center gap-3 mb-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex flex-wrap items-center justify-center gap-3 mb-10">
             {trustBadges.map((b) => (
               <span key={b.label} className="inline-flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2 text-sm text-slate-400">
                 <b.icon className="h-4 w-4 text-sky-400" />
@@ -57,24 +93,51 @@ export function PlatformsListContent({ pages }: { pages: PlatformPageData[] }) {
             ))}
           </motion.div>
 
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 mb-8">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="ابحث عن منصة..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/40 focus:ring-1 focus:ring-sky-500/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-1.5 flex-wrap justify-center">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategory(cat.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                    category === cat.id
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : 'bg-white/5 text-slate-400 border border-white/8 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Platform Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {pages.map((p, i) => (
+            {filtered.map((p, i) => (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: Math.min(i * 0.05, 0.4), duration: 0.4 }}
+                transition={{ delay: Math.min(i * 0.04, 0.3), duration: 0.4 }}
               >
                 <Link
                   href={`/platforms/${p.id}`}
                   className="glass-card p-6 group block"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="flex h-14 w-14 items-center justify-center rounded-2xl shrink-0 group-hover:scale-110 transition-transform"
-                      style={{ background: `${p.color}15` }}
-                    >
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl shrink-0 group-hover:scale-110 transition-transform" style={{ background: `${p.color}15` }}>
                       <PlatformIcon id={p.id} size={26} style={{ color: p.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -111,8 +174,13 @@ export function PlatformsListContent({ pages }: { pages: PlatformPageData[] }) {
             ))}
           </div>
 
+          {filtered.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-slate-500 text-lg">لا توجد منصات تطابق البحث</p>
+            </div>
+          )}
+
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mt-16">
-            {/* Social proof */}
             <div className="glass-card p-8 text-center mb-12">
               <div className="flex items-center justify-center gap-1 mb-3">
                 {Array.from({ length: 5 }).map((_, i) => (
