@@ -1,0 +1,145 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import NextAuth from 'next-auth'
+import Google from 'next-auth/providers/google'
+import Credentials from 'next-auth/providers/credentials'
+import { prisma } from '@/lib/db'
+import { verifyPassword } from '@/lib/utils'
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    Credentials({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'البريد الإلكتروني', type: 'email' },
+        password: { label: 'كلمة المرور', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email as string }
+        })
+
+        if (!user || !user.passwordHash) {
+          return null
+        }
+
+        if (user.status === 'suspended') {
+          return null
+        }
+
+        if (!user.emailVerifiedAt) {
+          return null
+        }
+
+        const isValid = verifyPassword(
+          credentials.password as string,
+          user.passwordHash
+        )
+
+        if (!isValid) {
+          return null
+        }
+
+        await prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'login',
+            ipAddress: '0.0.0.0'
+          }
+        })
+
+        return {
+          id: String(user.id),
+          email: user.email,
+          name: user.name || '',
+          role: user.role,
+          image: user.avatarUrl
+        }
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/login'
+  },
+  callbacks: {
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id
+        token.role = (user as any).role || 'user'
+      }
+
+      if (account?.provider === 'google' && user) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! }
+        })
+
+        if (!existingUser) {
+          const newUser = await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name || '',
+              avatarUrl: user.image || null,
+              role: 'user',
+              status: 'active',
+              emailVerifiedAt: new Date()
+            }
+          })
+
+          await prisma.auditLog.create({
+            data: {
+              userId: newUser.id,
+              action: 'register_google',
+              ipAddress: '0.0.0.0'
+            }
+          })
+
+          const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2')
+          await prisma.subscription.create({
+            data: {
+              userId: newUser.id,
+              keyId: null,
+              status: 'trial',
+              trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
+            }
+          })
+
+          token.id = String(newUser.id)
+          token.role = 'user'
+        } else {
+          token.id = String(existingUser.id)
+          token.role = existingUser.role
+
+          await prisma.auditLog.create({
+            data: {
+              userId: existingUser.id,
+              action: 'login_google',
+              ipAddress: '0.0.0.0'
+            }
+          })
+        }
+      }
+
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string
+        session.user.role = token.role as string
+      }
+      return session
+    }
+  }
+})
