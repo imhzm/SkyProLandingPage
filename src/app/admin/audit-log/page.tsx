@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 
 interface AuditLogEntry {
@@ -20,7 +20,7 @@ export default function AuditLogPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [actionFilter, setActionFilter] = useState('')
 
-  const loadLogs = () => {
+  const loadLogs = useCallback(() => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page), limit: '25', action: actionFilter })
     fetch(`/api/admin/audit-log?${params}`)
@@ -33,11 +33,11 @@ export default function AuditLogPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [page, actionFilter])
 
   useEffect(() => {
     loadLogs()
-  }, [page])
+  }, [loadLogs])
 
   const actionLabels: Record<string, string> = {
     login: 'تسجيل دخول',

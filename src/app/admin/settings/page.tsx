@@ -3,29 +3,29 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Save } from 'lucide-react'
 
+const DEFAULT_SETTINGS: Record<string, string> = {
+  trial_days: '2',
+  max_devices: '1',
+  max_resets_per_year: '2',
+  key_price: '2000',
+  key_currency: 'EGP',
+  key_duration_days: '365',
+}
+
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-
-  const defaultSettings: Record<string, string> = {
-    trial_days: '2',
-    max_devices: '1',
-    max_resets_per_year: '2',
-    key_price: '2000',
-    key_currency: 'EGP',
-    key_duration_days: '365',
-  }
 
   const loadSettings = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/settings')
       const data = await res.json()
       if (data.success) {
-        setSettings({ ...defaultSettings, ...data.data })
+        setSettings({ ...DEFAULT_SETTINGS, ...data.data })
       }
     } catch {
-      setSettings(defaultSettings)
+      setSettings(DEFAULT_SETTINGS)
     }
   }, [])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 interface Subscription {
   id: number
@@ -24,7 +24,7 @@ export default function AdminSubscriptionsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const loadSubscriptions = () => {
+  const loadSubscriptions = useCallback(() => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page), limit: '20' })
     fetch(`/api/admin/subscriptions?${params}`)
@@ -37,11 +37,11 @@ export default function AdminSubscriptionsPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [page])
 
   useEffect(() => {
     loadSubscriptions()
-  }, [page])
+  }, [loadSubscriptions])
 
   const updateSubscription = async (id: number, status: string) => {
     try {

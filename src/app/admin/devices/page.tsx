@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { RotateCcw } from 'lucide-react'
 
 interface Device {
@@ -27,7 +27,7 @@ export default function AdminDevicesPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const loadDevices = () => {
+  const loadDevices = useCallback(() => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page), limit: '20' })
     fetch(`/api/admin/devices?${params}`)
@@ -40,11 +40,11 @@ export default function AdminDevicesPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [page])
 
   useEffect(() => {
     loadDevices()
-  }, [page])
+  }, [loadDevices])
 
   const resetDevice = async (deviceId: number) => {
     if (!confirm('هل أنت متأكد من إعادة تعيين هذا الجهاز؟')) return

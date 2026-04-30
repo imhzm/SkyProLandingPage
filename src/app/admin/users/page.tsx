@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Search, UserCheck, Ban } from 'lucide-react'
 
 interface User {
@@ -24,7 +24,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const loadUsers = () => {
+  const loadUsers = useCallback(() => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page), limit: '20', search, status: statusFilter })
     fetch(`/api/admin/users?${params}`)
@@ -37,11 +37,11 @@ export default function AdminUsersPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [page, search, statusFilter])
 
   useEffect(() => {
     loadUsers()
-  }, [page])
+  }, [loadUsers])
 
   const updateStatus = async (userId: number, status: string) => {
     const res = await fetch('/api/admin/users', {

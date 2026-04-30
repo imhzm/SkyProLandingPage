@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Plus, Copy, Check } from 'lucide-react'
 
 interface ActivationKey {
@@ -29,7 +29,7 @@ export default function AdminKeysPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
 
-  const loadKeys = () => {
+  const loadKeys = useCallback(() => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page), limit: '20', status: statusFilter })
     fetch(`/api/admin/keys?${params}`)
@@ -42,11 +42,11 @@ export default function AdminKeysPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [page, statusFilter])
 
   useEffect(() => {
     loadKeys()
-  }, [page])
+  }, [loadKeys])
 
   const handleGenerate = async () => {
     setGenerating(true)
