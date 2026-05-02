@@ -175,7 +175,7 @@ export default function AdminUsersPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">البريد:</span>
                   <div className="flex items-center gap-2">
-                    <code className="text-white">{createdUser.email}</code>
+                    <code className="text-white" dir="ltr">{createdUser.email}</code>
                     <button onClick={() => copyToClipboard(createdUser.email, 'email')}>
                       {copied === 'email' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                     </button>
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">كلمة المرور:</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-white font-mono">{createdUser.password}</code>
+                      <code className="text-white font-mono" dir="ltr">{createdUser.password}</code>
                       <button onClick={() => copyToClipboard(createdUser.password!, 'pass')}>
                         {copied === 'pass' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                       </button>
@@ -196,7 +196,7 @@ export default function AdminUsersPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">السيريال:</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-white font-mono">{createdUser.serial}</code>
+                      <code className="text-white font-mono" dir="ltr">{createdUser.serial}</code>
                       <button onClick={() => copyToClipboard(createdUser.serial!, 'serial')}>
                         {copied === 'serial' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                       </button>
