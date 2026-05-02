@@ -81,7 +81,7 @@ ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin mai
 ```env
 SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
-SMTP_USER=noreply@skywaveads.com
+SMTP_USER=admin@skywaveads.com
 SMTP_PASS=your-smtp-password-here
 ```
 
