@@ -2,7 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { hashPassword, generateApiKey, getActivationExpiry } from '@/lib/utils'
+import { sendEmail, generateWelcomeEmail } from '@/lib/email'
 import { errorResponse, getErrorMessage } from '@/lib/api'
+import { createUserSchema } from '@/lib/validations'
 
 export async function GET(req: NextRequest) {
   try {
@@ -117,6 +120,83 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'تم تحديث المستخدم بنجاح' })
   } catch (err) {
     console.error('Update user error:', err)
+    return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.user || session.user.role !== 'admin') {
+      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
+    }
+
+    const body = await req.json()
+    const parsed = createUserSchema.safeParse(body)
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(', ')
+      return NextResponse.json(errorResponse(errors), { status: 400 })
+    }
+
+    const { email, name, sendEmail: shouldSendEmail } = parsed.data
+
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      return NextResponse.json(errorResponse('البريد الإلكتروني مسجل مسبقاً'), { status: 400 })
+    }
+
+    const password = Math.random().toString(36).slice(-10) + 'A1!'
+    const passwordHash = hashPassword(password)
+    const expiryDate = getActivationExpiry()
+    const keyCode = generateApiKey()
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name: name || null,
+        passwordHash,
+        role: 'user',
+        status: 'active',
+        emailVerifiedAt: new Date()
+      }
+    })
+
+    await prisma.activationKey.create({
+      data: {
+        keyCode,
+        userId: user.id,
+        status: 'assigned',
+        expiresAt: expiryDate
+      }
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        userId: parseInt(session.user.id),
+        action: 'create_user',
+        details: { newUserId: user.id, email, keyCode },
+        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+      }
+    })
+
+    if (shouldSendEmail) {
+      const html = generateWelcomeEmail(name || 'عميلنا الكريم', email, keyCode, expiryDate.toLocaleDateString('ar-EG'))
+      const text = `مرحباً ${name || 'عميلنا الكريم'}\n\nشكراً لتسجيلك في سيندر برو!\n\nبيانات التفعيل:\nالبريد: ${email}\nكلمة المرور: ${password}\nالسيريال: ${keyCode}\nتاريخ الانتهاء: ${expiryDate.toLocaleDateString('ar-EG')}\n\nقم بتحميل التطبيق واستخدم البيانات لتسجيل الدخول.`
+      await sendEmail({ to: email, subject: 'مرحباً بك في سيندر برو - بيانات التفعيل', text, html })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'تم إنشاء المستخدم بنجاح' + (shouldSendEmail ? ' وتم إرسال الإيميل' : ''),
+      data: {
+        user: { id: user.id, email: user.email, name: user.name },
+        password,
+        serial: keyCode,
+        expiryDate: expiryDate
+      }
+    })
+  } catch (err) {
+    console.error('Create user error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
   }
 }

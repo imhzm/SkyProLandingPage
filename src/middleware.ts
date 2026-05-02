@@ -8,12 +8,12 @@ export default auth((req) => {
     if (!req.auth) {
       return NextResponse.redirect(new URL('/auth/login', req.url))
     }
-    if (req.auth.user.role !== 'admin') {
+    if (req.auth.user?.role !== 'admin') {
       return NextResponse.redirect(new URL('/', req.url))
     }
   }
 
-  if ((pathname.startsWith('/auth') && pathname !== '/auth/callback') && req.auth) {
+  if (pathname.startsWith('/auth') && pathname !== '/auth/callback' && req.auth) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 

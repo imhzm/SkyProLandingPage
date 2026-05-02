@@ -60,4 +60,11 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
 export type VerifyDeviceInput = z.infer<typeof verifyDeviceSchema>
 export type ResetDeviceInput = z.infer<typeof resetDeviceSchema>
+export const createUserSchema = z.object({
+  email: z.string().email('بريد إلكتروني غير صالح'),
+  name: z.string().optional(),
+  sendEmail: z.boolean().default(true)
+})
+
 export type GenerateKeysInput = z.infer<typeof generateKeysSchema>
+export type CreateUserInput = z.infer<typeof createUserSchema>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Search, UserCheck, Ban } from 'lucide-react'
+import { Search, UserCheck, Ban, Plus, Check, Copy, Mail } from 'lucide-react'
 
 interface User {
   id: number
@@ -16,6 +16,14 @@ interface User {
   subscription: Record<string, unknown> | null
 }
 
+interface NewUser {
+  email: string
+  name: string
+  sendEmail: boolean
+  password?: string
+  serial?: string
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,6 +31,14 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+
+  const [showAdd, setShowAdd] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [newName, setNewName] = useState('')
+  const [sendEmail, setSendEmail] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [createdUser, setCreatedUser] = useState<NewUser | null>(null)
+  const [copied, setCopied] = useState('')
 
   const loadUsers = useCallback(() => {
     setLoading(true)
@@ -54,9 +70,143 @@ export default function AdminUsersPage() {
     else alert(data.error || 'فشلت العملية')
   }
 
+  const handleCreate = async () => {
+    if (!newEmail.trim()) return
+    setCreating(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail.trim(), name: newName.trim(), sendEmail })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setCreatedUser({
+          email: data.data.user.email,
+          name: data.data.user.name || '',
+          password: data.data.password,
+          serial: data.data.serial,
+          sendEmail
+        })
+        setNewEmail('')
+        setNewName('')
+        loadUsers()
+      } else {
+        alert(data.error || 'فشل إنشاء المستخدم')
+      }
+    } catch {
+      alert('فشل الاتصال بالخادم')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(label)
+    setTimeout(() => setCopied(''), 2000)
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">إدارة المستخدمين</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-white">إدارة المستخدمين</h1>
+        <button onClick={() => { setShowAdd(!showAdd); setCreatedUser(null) }} className="admin-btn-primary">
+          <Plus size={18} />
+          {showAdd ? 'إلغاء' : 'إضافة مستخدم'}
+        </button>
+      </div>
+
+      {showAdd && (
+        <div className="admin-card mb-6 !border-sky-500/30 !border">
+          <h3 className="text-lg font-bold text-white mb-4">إضافة مستخدم جديد</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="admin-label">البريد الإلكتروني *</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="admin-input"
+                placeholder="user@example.com"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className="admin-label">الاسم (اختياري)</label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="admin-input"
+                placeholder="اسم المستخدم"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mb-4">
+            <input
+              type="checkbox"
+              id="sendEmail"
+              checked={sendEmail}
+              onChange={(e) => setSendEmail(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="sendEmail" className="text-sm text-slate-300 cursor-pointer">
+              <Mail size={14} className="inline ml-1" />
+              إرسال بيانات التفعيل عبر الإيميل
+            </label>
+          </div>
+          <button
+            onClick={handleCreate}
+            disabled={creating || !newEmail.trim()}
+            className="admin-btn-success disabled:opacity-50"
+          >
+            {creating ? 'جارٍ الإنشاء...' : 'إنشاء مستخدم وسيريال'}
+          </button>
+
+          {createdUser && (
+            <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+              <h4 className="text-emerald-400 font-bold mb-2">تم الإنشاء بنجاح!</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">البريد:</span>
+                  <div className="flex items-center gap-2">
+                    <code className="text-white">{createdUser.email}</code>
+                    <button onClick={() => copyToClipboard(createdUser.email, 'email')}>
+                      {copied === 'email' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+                {createdUser.password && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">كلمة المرور:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-white font-mono">{createdUser.password}</code>
+                      <button onClick={() => copyToClipboard(createdUser.password!, 'pass')}>
+                        {copied === 'pass' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {createdUser.serial && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">السيريال:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-white font-mono">{createdUser.serial}</code>
+                      <button onClick={() => copyToClipboard(createdUser.serial!, 'serial')}>
+                        {copied === 'serial' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {createdUser.sendEmail && (
+                  <p className="text-emerald-400 text-xs">تم إرسال الإيميل بنجاح ✓</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="admin-card mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
