@@ -1,13 +1,34 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+
 const prisma = new PrismaClient();
+const email = process.env.ADMIN_EMAIL || 'admin@skywaveads.com';
+const password = process.env.ADMIN_PASSWORD;
 
 async function main() {
-  const user = await prisma.user.findUnique({ where: { email: 'admin@skywaveads.com' } });
+  if (!password) {
+    throw new Error('Set ADMIN_PASSWORD before checking a password.');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { email: true, role: true, status: true, passwordHash: true },
+  });
+
+  if (!user) {
+    throw new Error(`User not found: ${email}`);
+  }
+
+  const isValid = bcrypt.compareSync(password, user.passwordHash);
   console.log('User:', user.email, user.role, user.status);
-  console.log('Hash:', user.passwordHash);
-  const isValid = bcrypt.compareSync('Admin@2026', user.passwordHash);
   console.log('Password valid:', isValid);
-  await prisma.$disconnect();
 }
-main().catch(e => { console.error(e); process.exit(1); });
+
+main()
+  .catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

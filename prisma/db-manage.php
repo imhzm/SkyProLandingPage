@@ -1,76 +1,82 @@
 <?php
-$host = 'localhost';
-$dbname = 'skypro';
-$username = 'root';
-$password = 'Newjoker2k333';
+
+$confirm = getenv('CONFIRM_CLEAN_DB');
+if ($confirm !== 'DELETE_ALL_NON_ADMIN_DATA') {
+    fwrite(STDERR, "Refusing to clean database. Set CONFIRM_CLEAN_DB=DELETE_ALL_NON_ADMIN_DATA to continue.\n");
+    exit(1);
+}
+
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$dbname = getenv('DB_NAME') ?: 'skypro';
+$username = getenv('DB_USER');
+$password = getenv('DB_PASSWORD');
+$adminEmail = getenv('ADMIN_EMAIL') ?: 'admin@skywaveads.com';
+$adminPassword = getenv('ADMIN_PASSWORD');
+$createTestUser = getenv('CREATE_TEST_USER') === '1';
+$testPassword = getenv('TEST_USER_PASSWORD');
+
+if (!$username || !$password) {
+    fwrite(STDERR, "Set DB_USER and DB_PASSWORD before running this script.\n");
+    exit(1);
+}
+
+if (!$adminPassword || strlen($adminPassword) < 12) {
+    fwrite(STDERR, "Set ADMIN_PASSWORD to a strong password with at least 12 characters.\n");
+    exit(1);
+}
+
+if ($createTestUser && (!$testPassword || strlen($testPassword) < 12)) {
+    fwrite(STDERR, "Set TEST_USER_PASSWORD to a strong password with at least 12 characters.\n");
+    exit(1);
+}
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "Connected to database successfully!\n\n";
 
     $pdo->beginTransaction();
-    echo "Starting cleanup...\n";
 
-    // Delete in correct order
-    echo "- Deleting audit_log...\n";
-    $pdo->exec('DELETE FROM audit_log');
+    $tables = [
+        'audit_log',
+        'devices',
+        'subscriptions',
+        'activation_keys',
+        'nextauth_sessions',
+        'accounts',
+        'verification_tokens',
+    ];
 
-    echo "- Deleting devices...\n";
-    $pdo->exec('DELETE FROM devices');
-
-    echo "- Deleting subscriptions...\n";
-    $pdo->exec('DELETE FROM subscriptions');
-
-    echo "- Deleting activation_keys...\n";
-    $pdo->exec('DELETE FROM activation_keys');
-
-    echo "- Deleting nextauth_sessions...\n";
-    $pdo->exec('DELETE FROM nextauth_sessions');
-
-    echo "- Deleting accounts...\n";
-    $pdo->exec('DELETE FROM accounts');
-
-    echo "- Deleting verification_tokens...\n";
-    $pdo->exec('DELETE FROM verification_tokens');
-
-    echo "- Deleting users...\n";
-    $count = $pdo->exec('DELETE FROM users');
-    echo "Deleted $count users\n\n";
-
-    // Create admin user
-    echo "Creating admin user...\n";
-    $adminEmail = 'admin@skywaveads.com';
-    $adminPass = password_hash('Admin@2026', PASSWORD_DEFAULT);
-    $adminName = 'Admin';
-
-    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, name, role, status, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())');
-    $stmt->execute([$adminEmail, $adminPass, $adminName, 'admin', 'active']);
-    echo "Admin user created: $adminEmail\n";
-
-    // Create test user
-    echo "\nCreating test user...\n";
-    $testEmail = 'test@skywaveads.com';
-    $testPass = password_hash('Test@2026', PASSWORD_DEFAULT);
-    $testName = 'Test User';
-
-    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, name, role, status, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())');
-    $stmt->execute([$testEmail, $testPass, $testName, 'user', 'active']);
-    echo "Test user created: $testEmail\n";
-
-    $pdo->commit();
-    echo "\n✅ All operations completed successfully!\n";
-
-    // List all users
-    echo "\nAll users in database:\n";
-    $users = $pdo->query('SELECT id, email, name, role, status FROM users');
-    foreach ($users as $user) {
-        echo "  ID: {$user['id']}, Email: {$user['email']}, Role: {$user['role']}, Status: {$user['status']}\n";
+    foreach ($tables as $table) {
+        $pdo->exec("DELETE FROM `$table`");
     }
 
+    $pdo->exec('DELETE FROM users');
+
+    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, name, role, status, email_verified_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())');
+    $stmt->execute([
+        $adminEmail,
+        password_hash($adminPassword, PASSWORD_DEFAULT),
+        'Admin',
+        'admin',
+        'active',
+    ]);
+
+    if ($createTestUser) {
+        $stmt->execute([
+            'test@skywaveads.com',
+            password_hash($testPassword, PASSWORD_DEFAULT),
+            'Test User',
+            'user',
+            'active',
+        ]);
+    }
+
+    $pdo->commit();
+    echo "Database cleanup completed. Admin kept: {$adminEmail}\n";
 } catch (PDOException $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    echo "Error: " . $e->getMessage() . "\n";
+    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+    exit(1);
 }
