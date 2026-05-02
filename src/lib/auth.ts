@@ -3,7 +3,25 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
-import { generateApiKey, verifyPassword } from '@/lib/utils'
+import { generateApiKey, getTrialEndDate, verifyPassword } from '@/lib/utils'
+
+async function sendWelcomeEmailThroughApi(subject: string, welcomeData: Record<string, unknown>) {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '')
+  if (!baseUrl || !process.env.NEXTAUTH_SECRET) return
+
+  const response = await fetch(`${baseUrl}/api/internal/welcome-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.NEXTAUTH_SECRET}`
+    },
+    body: JSON.stringify({ subject, welcomeData })
+  })
+
+  if (!response.ok) {
+    console.error('Welcome email failed:', response.status)
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -89,8 +107,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
 
         if (!existingUser) {
-          const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2')
-          const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
+          const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2', 10)
+          const trialEndsAt = getTrialEndDate()
           const keyCode = generateApiKey()
           const { newUser, activationKey } = await prisma.$transaction(async (tx) => {
             const newUser = await tx.user.create({
@@ -149,28 +167,80 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             planLabel: `تجربة مجانية لمدة ${trialDays} يوم`,
             loginMethod: 'Google'
           }
-          const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '')
-          if (baseUrl && process.env.NEXTAUTH_SECRET) {
-            const response = await fetch(`${baseUrl}/api/internal/welcome-email`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.NEXTAUTH_SECRET}`
-              },
-              body: JSON.stringify({
-                subject: 'بيانات تجربة SkyPro المجانية',
-                welcomeData
-              })
-            })
-
-            if (!response.ok) {
-              console.error('Google welcome email failed:', response.status)
-            }
-          }
+          await sendWelcomeEmailThroughApi('بيانات تجربة SkyPro المجانية', welcomeData)
 
           token.id = String(newUser.id)
           token.role = 'user'
         } else {
+          const existingKey = await prisma.activationKey.findFirst({
+            where: {
+              userId: existingUser.id,
+              status: { in: ['active', 'available'] }
+            },
+            orderBy: { createdAt: 'desc' }
+          })
+
+          if (!existingKey) {
+            const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2', 10)
+            const trialEndsAt = getTrialEndDate()
+            const keyCode = generateApiKey()
+
+            const activationKey = await prisma.$transaction(async (tx) => {
+              await tx.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  status: 'active',
+                  emailVerifiedAt: existingUser.emailVerifiedAt || new Date()
+                }
+              })
+
+              const activationKey = await tx.activationKey.create({
+                data: {
+                  keyCode,
+                  userId: existingUser.id,
+                  status: 'active',
+                  plan: 'trial',
+                  durationDays: trialDays,
+                  maxDevices: parseInt(process.env.DEFAULT_MAX_DEVICES || '1', 10),
+                  activatedAt: new Date(),
+                  expiresAt: trialEndsAt
+                }
+              })
+
+              await tx.subscription.create({
+                data: {
+                  userId: existingUser.id,
+                  keyId: activationKey.id,
+                  status: 'trial',
+                  trialEndsAt,
+                  startedAt: new Date(),
+                  expiresAt: trialEndsAt
+                }
+              })
+
+              await tx.auditLog.create({
+                data: {
+                  userId: existingUser.id,
+                  action: 'google_trial_activation_created',
+                  details: { keyCode, trialDays },
+                  ipAddress: '0.0.0.0'
+                }
+              })
+
+              return activationKey
+            })
+
+            await sendWelcomeEmailThroughApi('بيانات تجربة SkyPro المجانية', {
+              name: existingUser.name || 'عميلنا الكريم',
+              email: existingUser.email,
+              password: null,
+              serial: activationKey.keyCode,
+              expiryDate: trialEndsAt.toLocaleDateString('ar-EG'),
+              planLabel: `تجربة مجانية لمدة ${trialDays} يوم`,
+              loginMethod: 'Google'
+            })
+          }
+
           token.id = String(existingUser.id)
           token.role = existingUser.role
 

@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
       }
       const emailResult = await sendEmail({
         to: email,
-        subject: 'بيانات حسابك وتفعيل سيندر برو',
+        subject: 'بيانات حسابك وتفعيل SkyPro',
         text: generateWelcomeEmailText(welcomeData),
         html: generateWelcomeEmail(welcomeData)
       })

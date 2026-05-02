@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
     const emailResult = await sendEmail({
       to: email,
-      subject: 'بيانات حسابك وتجربة سيندر برو المجانية',
+      subject: 'بيانات حسابك وتجربة SkyPro المجانية',
       text: generateWelcomeEmailText(welcomeData),
       html: generateWelcomeEmail(welcomeData)
     })
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       trialEndsAt,
       emailSent: emailResult.success
     }, emailResult.success
-      ? 'تم إنشاء الحساب وإرسال بيانات الدخول والتفعيل إلى البريد'
+      ? 'تم إنشاء الحساب وإرسال بيانات الدخول والتفعيل إلى البريد. إذا لم تظهر الرسالة في الوارد، راجع قسم Spam/Junk.'
       : 'تم إنشاء الحساب والتجربة، لكن فشل إرسال البريد. تواصل مع الدعم للحصول على البيانات.'))
   } catch (err) {
     console.error('Register error:', err)

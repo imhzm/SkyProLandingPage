@@ -26,6 +26,7 @@ export interface WelcomeEmailData {
 const APP_NAME = 'SkyPro'
 const APP_WEBSITE_URL = 'https://www.skywaveads.com'
 const APP_WEBSITE_LABEL = 'www.skywaveads.com'
+const SPAM_NOTICE_TEXT = 'تنبيه مهم: إذا لم تجد هذه الرسالة في البريد الوارد، يرجى مراجعة قسم البريد غير الهام أو Spam/Junk ثم نقل الرسالة إلى الوارد.'
 
 function env(name: string): string {
   return (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '')
@@ -105,6 +106,8 @@ ${passwordLine}السيريال: ${data.serial}
 
 يمكنك تسجيل الدخول من لوحة الويب أو استخدام السيريال داخل تطبيق الديسكتوب.
 
+${SPAM_NOTICE_TEXT}
+
 فريق ${APP_NAME}
 الموقع: ${APP_WEBSITE_LABEL}`
 }
@@ -137,6 +140,9 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
             <p><strong>تاريخ الانتهاء:</strong> ${expiryDate}</p>
           </div>
           <p>يمكنك تسجيل الدخول من لوحة الويب أو استخدام السيريال داخل تطبيق الديسكتوب.</p>
+          <p style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:12px;font-size:13px;line-height:1.7;">
+            ${SPAM_NOTICE_TEXT}
+          </p>
           <p style="margin-bottom:0;color:#64748b;font-size:13px;">لو لم تطلب هذا الحساب، تجاهل هذه الرسالة.</p>
         </div>
       </div>

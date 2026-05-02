@@ -68,7 +68,7 @@ export default function RegisterPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 shadow-lg shadow-sky-500/20">
               <Send className="h-5 w-5 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text-brand">سيندر برو</span>
+            <span className="text-2xl font-bold gradient-text-brand">SkyPro</span>
           </Link>
           <p className="text-slate-400 mt-3">أنشئ حسابك المجاني — تجربة يومين</p>
         </div>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
           )}
 
           <div className="bg-sky-500/10 border border-sky-500/20 text-sky-400 px-4 py-3 rounded-xl mb-4 text-sm text-center">
-            جرّب سيندر برو مجاناً ليومين — بدون بطاقة ائتمانية
+            جرّب SkyPro مجاناً ليومين — بدون بطاقة ائتمانية. سيتم إرسال بيانات الدخول والسيريال إلى بريدك، وقد تظهر الرسالة في Spam/Junk.
           </div>
 
           <a

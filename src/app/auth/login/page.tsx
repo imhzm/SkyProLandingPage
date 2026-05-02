@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, Send } from 'lucide-react'
@@ -11,6 +11,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('message') === 'trial-created') {
+      setNotice('تم إنشاء حسابك وتفعيل تجربة SkyPro لمدة يومين. أرسلنا بيانات الدخول والسيريال إلى بريدك، وإذا لم تظهر الرسالة في الوارد راجع قسم Spam/Junk.')
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,12 +64,18 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 shadow-lg shadow-sky-500/20">
               <Send className="h-5 w-5 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text-brand">سيندر برو</span>
+            <span className="text-2xl font-bold gradient-text-brand">SkyPro</span>
           </Link>
           <p className="text-slate-400 mt-3">تسجيل الدخول إلى حسابك</p>
         </div>
 
         <div className="gradient-border p-8">
+          {notice && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-4 py-3 rounded-xl mb-4 text-sm leading-6">
+              {notice}
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm">
               {error}
