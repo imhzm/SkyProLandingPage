@@ -59,13 +59,24 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions): Prom
   })
 
   try {
+    const recipients = to
+      .split(',')
+      .map((recipient) => recipient.trim())
+      .filter(Boolean)
+
     const info = await transporter.sendMail({
       from: `"${APP_NAME}" <${user}>`,
+      envelope: { from: user, to: recipients.length > 0 ? recipients : [to] },
       replyTo: user,
       to,
       subject,
       text,
       html: html || text,
+      headers: {
+        'Auto-Submitted': 'auto-generated',
+        'X-Auto-Response-Suppress': 'All',
+        Organization: APP_NAME,
+      },
     })
 
     return { success: true, messageId: info.messageId }
