@@ -40,7 +40,11 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (data.success) {
-        router.push('/auth/login?message=verify-email')
+        if (data.data?.emailSent === false) {
+          setError(data.message || 'تم إنشاء الحساب لكن فشل إرسال بيانات التفعيل إلى الإيميل')
+          return
+        }
+        router.push('/auth/login?message=trial-created')
       } else {
         setError(data.error || 'فشل إنشاء الحساب')
       }

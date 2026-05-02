@@ -20,6 +20,8 @@ interface NewUser {
   email: string
   name: string
   sendEmail: boolean
+  emailSent?: boolean
+  emailError?: string
   password?: string
   serial?: string
 }
@@ -86,7 +88,9 @@ export default function AdminUsersPage() {
           name: data.data.user.name || '',
           password: data.data.password,
           serial: data.data.serial,
-          sendEmail
+          sendEmail,
+          emailSent: data.data.emailSent,
+          emailError: data.data.emailError
         })
         setNewEmail('')
         setNewName('')
@@ -199,8 +203,14 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 )}
-                {createdUser.sendEmail && (
+                {createdUser.sendEmail && createdUser.emailSent && (
                   <p className="text-emerald-400 text-xs">تم إرسال الإيميل بنجاح ✓</p>
+                )}
+                {createdUser.sendEmail && createdUser.emailSent === false && (
+                  <p className="text-amber-400 text-xs">
+                    تم إنشاء الحساب لكن فشل إرسال الإيميل. استخدم البيانات المعروضة أو راجع إعدادات SMTP.
+                    {createdUser.emailError ? ` (${createdUser.emailError})` : ''}
+                  </p>
                 )}
               </div>
             </div>

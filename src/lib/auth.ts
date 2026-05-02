@@ -3,7 +3,7 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
-import { verifyPassword } from '@/lib/utils'
+import { generateApiKey, verifyPassword } from '@/lib/utils'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -89,33 +89,72 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
 
         if (!existingUser) {
-          const newUser = await prisma.user.create({
-            data: {
-              email: user.email!,
-              name: user.name || '',
-              avatarUrl: user.image || null,
-              role: 'user',
-              status: 'active',
-              emailVerifiedAt: new Date()
-            }
-          })
-
-          await prisma.auditLog.create({
-            data: {
-              userId: newUser.id,
-              action: 'register_google',
-              ipAddress: '0.0.0.0'
-            }
-          })
-
           const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2')
-          await prisma.subscription.create({
-            data: {
-              userId: newUser.id,
-              keyId: null,
-              status: 'trial',
-              trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
-            }
+          const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
+          const keyCode = generateApiKey()
+          const { newUser, activationKey } = await prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+              data: {
+                email: user.email!,
+                name: user.name || '',
+                avatarUrl: user.image || null,
+                role: 'user',
+                status: 'active',
+                emailVerifiedAt: new Date()
+              }
+            })
+
+            const activationKey = await tx.activationKey.create({
+              data: {
+                keyCode,
+                userId: newUser.id,
+                status: 'active',
+                plan: 'trial',
+                durationDays: trialDays,
+                maxDevices: parseInt(process.env.DEFAULT_MAX_DEVICES || '1', 10),
+                activatedAt: new Date(),
+                expiresAt: trialEndsAt
+              }
+            })
+
+            await tx.subscription.create({
+              data: {
+                userId: newUser.id,
+                keyId: activationKey.id,
+                status: 'trial',
+                trialEndsAt,
+                startedAt: new Date(),
+                expiresAt: trialEndsAt
+              }
+            })
+
+            await tx.auditLog.create({
+              data: {
+                userId: newUser.id,
+                action: 'register_google',
+                details: { keyCode, trialDays },
+                ipAddress: '0.0.0.0'
+              }
+            })
+
+            return { newUser, activationKey }
+          })
+
+          const welcomeData = {
+            name: newUser.name || 'عميلنا الكريم',
+            email: newUser.email,
+            password: null,
+            serial: activationKey.keyCode,
+            expiryDate: trialEndsAt.toLocaleDateString('ar-EG'),
+            planLabel: `تجربة مجانية لمدة ${trialDays} يوم`,
+            loginMethod: 'Google'
+          }
+          const { generateWelcomeEmail, generateWelcomeEmailText, sendEmail } = await import('@/lib/email')
+          await sendEmail({
+            to: newUser.email,
+            subject: 'بيانات تجربة سيندر برو المجانية',
+            text: generateWelcomeEmailText(welcomeData),
+            html: generateWelcomeEmail(welcomeData)
           })
 
           token.id = String(newUser.id)

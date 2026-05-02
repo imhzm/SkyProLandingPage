@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { registerSchema } from '@/lib/validations'
-import { hashPassword, getTrialEndDate } from '@/lib/utils'
+import { generateApiKey, getTrialEndDate, hashPassword } from '@/lib/utils'
+import { generateWelcomeEmail, generateWelcomeEmailText, sendEmail } from '@/lib/email'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
 
 export async function POST(req: NextRequest) {
@@ -22,35 +23,84 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = hashPassword(password)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        passwordHash,
-        role: 'user',
-        status: 'active',
-        emailVerifiedAt: new Date()
-      }
+    const trialDays = parseInt(process.env.DEFAULT_TRIAL_DAYS || '2', 10)
+    const maxDevices = parseInt(process.env.DEFAULT_MAX_DEVICES || '1', 10)
+    const trialEndsAt = getTrialEndDate()
+    const keyCode = generateApiKey()
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
+
+    const { user, activationKey } = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email,
+          name,
+          passwordHash,
+          role: 'user',
+          status: 'active',
+          emailVerifiedAt: new Date()
+        }
+      })
+
+      const activationKey = await tx.activationKey.create({
+        data: {
+          keyCode,
+          userId: user.id,
+          status: 'active',
+          plan: 'trial',
+          durationDays: trialDays,
+          maxDevices,
+          activatedAt: new Date(),
+          expiresAt: trialEndsAt
+        }
+      })
+
+      await tx.subscription.create({
+        data: {
+          userId: user.id,
+          keyId: activationKey.id,
+          status: 'trial',
+          trialEndsAt,
+          startedAt: new Date(),
+          expiresAt: trialEndsAt
+        }
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'register',
+          details: { keyCode, trialDays },
+          ipAddress
+        }
+      })
+
+      return { user, activationKey }
     })
 
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        keyId: null,
-        status: 'trial',
-        trialEndsAt: getTrialEndDate()
-      }
+    const welcomeData = {
+      name,
+      email,
+      password,
+      serial: activationKey.keyCode,
+      expiryDate: trialEndsAt.toLocaleDateString('ar-EG'),
+      planLabel: `تجربة مجانية لمدة ${trialDays} يوم`
+    }
+    const emailResult = await sendEmail({
+      to: email,
+      subject: 'بيانات حسابك وتجربة سيندر برو المجانية',
+      text: generateWelcomeEmailText(welcomeData),
+      html: generateWelcomeEmail(welcomeData)
     })
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'register',
-        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
-      }
-    })
-
-    return NextResponse.json(successResponse({ userId: user.id, email: user.email }, 'تم إنشاء الحساب بنجاح'))
+    return NextResponse.json(successResponse({
+      userId: user.id,
+      email: user.email,
+      serial: activationKey.keyCode,
+      trialEndsAt,
+      emailSent: emailResult.success
+    }, emailResult.success
+      ? 'تم إنشاء الحساب وإرسال بيانات الدخول والتفعيل إلى البريد'
+      : 'تم إنشاء الحساب والتجربة، لكن فشل إرسال البريد. تواصل مع الدعم للحصول على البيانات.'))
   } catch (err) {
     console.error('Register error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })

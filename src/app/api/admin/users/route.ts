@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { hashPassword, generateApiKey, getActivationExpiry } from '@/lib/utils'
-import { sendEmail, generateWelcomeEmail } from '@/lib/email'
+import { sendEmail, generateWelcomeEmail, generateWelcomeEmailText } from '@/lib/email'
 import { errorResponse, getErrorMessage } from '@/lib/api'
 import { createUserSchema } from '@/lib/validations'
 
@@ -161,12 +161,25 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    await prisma.activationKey.create({
+    const activationKey = await prisma.activationKey.create({
       data: {
         keyCode,
         userId: user.id,
-        status: 'assigned',
+        status: 'active',
+        activatedAt: new Date(),
         expiresAt: expiryDate
+      }
+    })
+
+    await prisma.subscription.create({
+      data: {
+        userId: user.id,
+        keyId: activationKey.id,
+        status: 'active',
+        startedAt: new Date(),
+        expiresAt: expiryDate,
+        amount: parseFloat(process.env.DEFAULT_KEY_PRICE || '2000'),
+        currency: process.env.DEFAULT_KEY_CURRENCY || 'EGP'
       }
     })
 
@@ -179,20 +192,39 @@ export async function POST(req: NextRequest) {
       }
     })
 
+    let emailSent = false
+    let emailError: string | undefined
     if (shouldSendEmail) {
-      const html = generateWelcomeEmail(name || 'عميلنا الكريم', email, keyCode, expiryDate.toLocaleDateString('ar-EG'))
-      const text = `مرحباً ${name || 'عميلنا الكريم'}\n\nشكراً لتسجيلك في سيندر برو!\n\nبيانات التفعيل:\nالبريد: ${email}\nكلمة المرور: ${password}\nالسيريال: ${keyCode}\nتاريخ الانتهاء: ${expiryDate.toLocaleDateString('ar-EG')}\n\nقم بتحميل التطبيق واستخدم البيانات لتسجيل الدخول.`
-      await sendEmail({ to: email, subject: 'مرحباً بك في سيندر برو - بيانات التفعيل', text, html })
+      const welcomeData = {
+        name: name || 'عميلنا الكريم',
+        email,
+        password,
+        serial: keyCode,
+        expiryDate: expiryDate.toLocaleDateString('ar-EG'),
+        planLabel: 'اشتراك سنوي'
+      }
+      const emailResult = await sendEmail({
+        to: email,
+        subject: 'بيانات حسابك وتفعيل سيندر برو',
+        text: generateWelcomeEmailText(welcomeData),
+        html: generateWelcomeEmail(welcomeData)
+      })
+      emailSent = emailResult.success
+      emailError = emailResult.error
     }
 
     return NextResponse.json({
       success: true,
-      message: 'تم إنشاء المستخدم بنجاح' + (shouldSendEmail ? ' وتم إرسال الإيميل' : ''),
+      message: shouldSendEmail
+        ? (emailSent ? 'تم إنشاء المستخدم وإرسال الإيميل بنجاح' : 'تم إنشاء المستخدم لكن فشل إرسال الإيميل')
+        : 'تم إنشاء المستخدم بنجاح',
       data: {
         user: { id: user.id, email: user.email, name: user.name },
         password,
         serial: keyCode,
-        expiryDate: expiryDate
+        expiryDate: expiryDate,
+        emailSent,
+        emailError
       }
     })
   } catch (err) {
