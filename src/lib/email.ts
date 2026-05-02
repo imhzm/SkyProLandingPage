@@ -23,6 +23,12 @@ export interface WelcomeEmailData {
   loginMethod?: string
 }
 
+export interface AccountSuspendedEmailData {
+  name?: string | null
+  email: string
+  reason?: string | null
+}
+
 const APP_NAME = 'SkyPro'
 const APP_WEBSITE_URL = 'https://www.skywaveads.com'
 const APP_WEBSITE_LABEL = 'www.skywaveads.com'
@@ -144,6 +150,56 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
             ${SPAM_NOTICE_TEXT}
           </p>
           <p style="margin-bottom:0;color:#64748b;font-size:13px;">لو لم تطلب هذا الحساب، تجاهل هذه الرسالة.</p>
+        </div>
+      </div>
+      <p style="text-align:center;color:#64748b;font-size:12px;margin-top:18px;">
+        ${APP_NAME}<br />
+        <a href="${APP_WEBSITE_URL}" style="color:#0A6CF1;text-decoration:none;">${APP_WEBSITE_LABEL}</a>
+      </p>
+    </div>
+  `
+}
+
+export function generateAccountSuspendedEmailText(data: AccountSuspendedEmailData): string {
+  const name = data.name || 'عميلنا الكريم'
+  const reasonLine = data.reason ? `سبب الحظر: ${data.reason}\n` : ''
+
+  return `مرحباً ${name}
+
+تم حظر حسابك في ${APP_NAME} وإيقاف إمكانية الدخول إلى برنامج الديسكتوب.
+
+بيانات الحساب:
+البريد: ${data.email}
+الحالة: محظور
+${reasonLine}
+إذا كنت تعتقد أن هذا القرار تم بالخطأ، يرجى التواصل مع الدعم من خلال الموقع:
+${APP_WEBSITE_LABEL}
+
+فريق ${APP_NAME}`
+}
+
+export function generateAccountSuspendedEmail(data: AccountSuspendedEmailData): string {
+  const name = escapeHtml(data.name || 'عميلنا الكريم')
+  const email = escapeHtml(data.email)
+  const reason = data.reason?.trim()
+
+  return `
+    <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#f8fafc;color:#0f172a;">
+      <div style="background:#ffffff;border:1px solid #fee2e2;border-radius:14px;overflow:hidden;">
+        <div style="padding:24px;background:#991b1b;color:#ffffff;text-align:center;">
+          <h1 style="margin:0;font-size:24px;">تم حظر حسابك في ${APP_NAME}</h1>
+          <p style="margin:8px 0 0;font-size:14px;">تم إيقاف إمكانية الدخول إلى برنامج الديسكتوب</p>
+        </div>
+
+        <div style="padding:24px;">
+          <p style="margin-top:0;">مرحباً ${name}</p>
+          <p>تم حظر هذا الحساب وإيقاف السيريالات والأجهزة المرتبطة به.</p>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:18px;margin:18px 0;">
+            <p><strong>البريد الإلكتروني:</strong> ${email}</p>
+            <p><strong>الحالة:</strong> محظور</p>
+            ${reason ? `<p><strong>سبب الحظر:</strong> ${escapeHtml(reason)}</p>` : ''}
+          </div>
+          <p>إذا كنت تعتقد أن هذا القرار تم بالخطأ، يرجى التواصل مع الدعم من خلال الموقع.</p>
         </div>
       </div>
       <p style="text-align:center;color:#64748b;font-size:12px;margin-top:18px;">

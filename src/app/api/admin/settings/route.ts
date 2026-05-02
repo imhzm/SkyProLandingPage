@@ -1,16 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { errorResponse, getErrorMessage } from '@/lib/api'
+import { getClientIp, requireAdmin } from '@/lib/admin-security'
+
+export const dynamic = 'force-dynamic'
+
+const allowedSettingKeys = [
+  'trial_days',
+  'max_devices',
+  'max_resets_per_year',
+  'key_price',
+  'key_currency',
+  'key_duration_days'
+] as const
+
+const numericSettingKeys = new Set(['trial_days', 'max_devices', 'max_resets_per_year', 'key_price', 'key_duration_days'])
+
+const settingSchema = z.object({
+  key: z.enum(allowedSettingKeys),
+  value: z.string().trim().min(1).max(40)
+})
+
+function validateSettingValue(key: string, value: string) {
+  if (numericSettingKeys.has(key)) {
+    const numberValue = Number(value)
+    return Number.isFinite(numberValue) && numberValue > 0
+  }
+
+  if (key === 'key_currency') {
+    return /^[A-Z]{3}$/.test(value)
+  }
+
+  return true
+}
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin()
+    if (guard.response) return guard.response
 
-    const settings = await prisma.systemSetting.findMany()
+    const settings = await prisma.systemSetting.findMany({
+      where: { settingKey: { in: [...allowedSettingKeys] } }
+    })
     const map: Record<string, string> = {}
     settings.forEach((s) => { map[s.settingKey] = s.settingValue || '' })
 
@@ -23,15 +55,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
+
+    const parsed = settingSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(errorResponse('إعداد غير صالح'), { status: 400 })
     }
 
-    const { key, value } = await req.json()
-
-    if (!key) {
-      return NextResponse.json(errorResponse('المفتاح مطلوب'), { status: 400 })
+    const { key, value } = parsed.data
+    if (!validateSettingValue(key, value)) {
+      return NextResponse.json(errorResponse('قيمة الإعداد غير صحيحة'), { status: 400 })
     }
 
     const setting = await prisma.systemSetting.upsert({
@@ -42,10 +76,10 @@ export async function POST(req: NextRequest) {
 
     await prisma.auditLog.create({
       data: {
-        userId: parseInt(session.user.id),
+        userId: Number(guard.session?.user.id),
         action: 'update_setting',
         details: { key, value },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+        ipAddress: getClientIp(req)
       }
     })
 

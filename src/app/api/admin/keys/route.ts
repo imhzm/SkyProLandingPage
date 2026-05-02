@@ -1,22 +1,41 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { generateApiKey } from '@/lib/utils'
 import { errorResponse, getErrorMessage } from '@/lib/api'
+import { getClientIp, requireAdmin } from '@/lib/admin-security'
+
+export const dynamic = 'force-dynamic'
+
+const keyStatusSchema = z.enum(['available', 'assigned', 'active', 'expired', 'revoked', 'suspended'])
+
+const listKeysSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(5).max(100).default(20),
+  status: z.union([keyStatusSchema, z.literal('')]).default('')
+})
+
+const generateKeysSchema = z.object({
+  count: z.coerce.number().int().min(1).max(100).default(1),
+  plan: z.string().trim().min(1).max(40).default('pro'),
+  durationDays: z.coerce.number().int().min(1).max(3650).default(365),
+  maxDevices: z.coerce.number().int().min(1).max(50).default(1),
+  userId: z.coerce.number().int().positive().optional()
+})
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin()
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const page = parseInt(url.searchParams.get('page') || '1')
-    const limit = parseInt(url.searchParams.get('limit') || '20')
-    const status = url.searchParams.get('status') || ''
+    const parsed = listKeysSchema.safeParse(Object.fromEntries(url.searchParams))
+    if (!parsed.success) {
+      return NextResponse.json(errorResponse('بيانات البحث غير صحيحة'), { status: 400 })
+    }
 
+    const { page, limit, status } = parsed.data
     const where: any = {}
     if (status) where.status = status
 
@@ -27,7 +46,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { select: { id: true, email: true, name: true } },
+          user: { select: { id: true, email: true, name: true, status: true } },
           _count: { select: { devices: true } }
         }
       }),
@@ -37,7 +56,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        keys: keys.map(k => ({
+        keys: keys.map((k) => ({
           id: k.id,
           keyCode: k.keyCode,
           status: k.status,
@@ -53,7 +72,7 @@ export async function GET(req: NextRequest) {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(1, Math.ceil(total / limit))
       }
     })
   } catch (err) {
@@ -64,41 +83,56 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
+
+    const parsed = generateKeysSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(', ')
+      return NextResponse.json(errorResponse(errors), { status: 400 })
     }
 
-    const body = await req.json()
-    const { count = 1, plan = 'pro', durationDays = 365, maxDevices = 1, userId } = body
+    const { count, plan, durationDays, maxDevices, userId } = parsed.data
 
-    if (count < 1 || count > 100) {
-      return NextResponse.json(errorResponse('العدد يجب أن يكون بين 1 و 100'), { status: 400 })
+    if (userId) {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, status: true }
+      })
+      if (!targetUser) {
+        return NextResponse.json(errorResponse('المستخدم غير موجود'), { status: 404 })
+      }
+      if (targetUser.status !== 'active') {
+        return NextResponse.json(errorResponse('لا يمكن إنشاء سيريال لمستخدم غير نشط'), { status: 400 })
+      }
     }
 
-    const keys = []
-    for (let i = 0; i < count; i++) {
-      const keyCode = generateApiKey()
-      const key = await prisma.activationKey.create({
+    const keys = await prisma.$transaction(async (tx) => {
+      const createdKeys = []
+      for (let i = 0; i < count; i++) {
+        const key = await tx.activationKey.create({
+          data: {
+            keyCode: generateApiKey(),
+            plan,
+            durationDays,
+            maxDevices,
+            userId: userId || null,
+            status: userId ? 'assigned' : 'available'
+          }
+        })
+        createdKeys.push(key)
+      }
+
+      await tx.auditLog.create({
         data: {
-          keyCode,
-          plan,
-          durationDays,
-          maxDevices,
-          userId: userId || null,
-          status: userId ? 'assigned' : 'available'
+          userId: Number(guard.session?.user.id),
+          action: 'admin_generate_keys',
+          details: { count, plan, durationDays, maxDevices, userId: userId || null },
+          ipAddress: getClientIp(req)
         }
       })
-      keys.push(key)
-    }
 
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'admin_generate_keys',
-        details: { count, plan, userId },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
-      }
+      return createdKeys
     })
 
     return NextResponse.json({

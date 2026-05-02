@@ -1,25 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { errorResponse, getErrorMessage } from '@/lib/api'
+import { requireAdmin } from '@/lib/admin-security'
+
+export const dynamic = 'force-dynamic'
+
+const listAuditLogSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(10).max(200).default(50),
+  action: z.string().trim().max(80).default(''),
+  userId: z.preprocess((value) => value === '' ? undefined : value, z.coerce.number().int().positive().optional())
+})
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin()
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const page = parseInt(url.searchParams.get('page') || '1')
-    const limit = parseInt(url.searchParams.get('limit') || '50')
-    const action = url.searchParams.get('action') || ''
-    const userId = url.searchParams.get('userId') || ''
+    const parsed = listAuditLogSchema.safeParse(Object.fromEntries(url.searchParams))
+    if (!parsed.success) {
+      return NextResponse.json(errorResponse('بيانات البحث غير صحيحة'), { status: 400 })
+    }
 
+    const { page, limit, action, userId } = parsed.data
     const where: any = {}
     if (action) where.action = action
-    if (userId) where.userId = parseInt(userId)
+    if (userId) where.userId = userId
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
@@ -41,7 +50,7 @@ export async function GET(req: NextRequest) {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(1, Math.ceil(total / limit))
       }
     })
   } catch (err) {

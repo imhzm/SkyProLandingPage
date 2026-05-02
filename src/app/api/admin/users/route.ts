@@ -1,25 +1,80 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { hashPassword, generateApiKey, getActivationExpiry } from '@/lib/utils'
-import { sendEmail, generateWelcomeEmail, generateWelcomeEmailText } from '@/lib/email'
+import {
+  sendEmail,
+  generateWelcomeEmail,
+  generateWelcomeEmailText,
+  generateAccountSuspendedEmail,
+  generateAccountSuspendedEmailText
+} from '@/lib/email'
 import { errorResponse, getErrorMessage } from '@/lib/api'
 import { createUserSchema } from '@/lib/validations'
+import { getClientIp, requireAdmin } from '@/lib/admin-security'
+
+const userStatusSchema = z.enum(['active', 'suspended', 'deleted'])
+const userRoleSchema = z.enum(['user', 'admin'])
+
+export const dynamic = 'force-dynamic'
+
+const listUsersSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(5).max(100).default(20),
+  search: z.string().trim().max(120).default(''),
+  status: z.union([userStatusSchema, z.literal('')]).default(''),
+  role: z.union([userRoleSchema, z.literal('')]).default('')
+})
+
+const updateUserSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  name: z.string().trim().max(120).optional(),
+  role: userRoleSchema.optional(),
+  status: userStatusSchema.optional(),
+  maxDevices: z.coerce.number().int().min(1).max(50).optional(),
+  suspensionReason: z.string().trim().max(500).optional()
+})
+
+function sanitizeUserUpdate(update: z.infer<typeof updateUserSchema>) {
+  const updateData: Record<string, string | null> = {}
+  if (update.name !== undefined) updateData.name = update.name || null
+  if (update.role) updateData.role = update.role
+  if (update.status) updateData.status = update.status
+  return updateData
+}
+
+async function restoreSuspendedSubscriptions(userId: number) {
+  const subscriptions = await prisma.subscription.findMany({
+    where: { userId, status: 'suspended' },
+    select: { id: true, trialEndsAt: true, expiresAt: true }
+  })
+
+  const now = new Date()
+  for (const subscription of subscriptions) {
+    const isTrial = subscription.trialEndsAt && subscription.trialEndsAt > now
+    const isActive = subscription.expiresAt && subscription.expiresAt > now
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: isTrial ? 'trial' : isActive ? 'active' : 'expired' }
+    })
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin()
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const page = parseInt(url.searchParams.get('page') || '1')
-    const limit = parseInt(url.searchParams.get('limit') || '20')
-    const search = url.searchParams.get('search') || ''
-    const status = url.searchParams.get('status') || ''
+    const parsed = listUsersSchema.safeParse(Object.fromEntries(url.searchParams))
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(', ')
+      return NextResponse.json(errorResponse(errors), { status: 400 })
+    }
 
+    const { page, limit, search, status, role } = parsed.data
     const where: any = {}
     if (search) {
       where.OR = [
@@ -27,11 +82,10 @@ export async function GET(req: NextRequest) {
         { name: { contains: search } }
       ]
     }
-    if (status) {
-      where.status = status
-    }
+    if (status) where.status = status
+    if (role) where.role = role
 
-    const [users, total] = await Promise.all([
+    const [users, total, statusCounts] = await Promise.all([
       prisma.user.findMany({
         where,
         skip: (page - 1) * limit,
@@ -39,10 +93,19 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
         include: {
           _count: { select: { activationKeys: true, devices: true } },
-          subscriptions: { take: 1, orderBy: { createdAt: 'desc' } }
+          subscriptions: { take: 1, orderBy: { createdAt: 'desc' } },
+          activationKeys: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { keyCode: true, status: true, expiresAt: true, maxDevices: true }
+          }
         }
       }),
-      prisma.user.count({ where })
+      prisma.user.count({ where }),
+      prisma.user.groupBy({
+        by: ['status'],
+        _count: { status: true }
+      })
     ])
 
     return NextResponse.json({
@@ -58,12 +121,17 @@ export async function GET(req: NextRequest) {
           createdAt: u.createdAt,
           keysCount: u._count.activationKeys,
           devicesCount: u._count.devices,
-          subscription: u.subscriptions[0] || null
+          subscription: u.subscriptions[0] || null,
+          latestKey: u.activationKeys[0] || null
         })),
         total,
+        statusCounts: statusCounts.reduce<Record<string, number>>((acc, item) => {
+          acc[item.status] = item._count.status
+          return acc
+        }, {}),
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(1, Math.ceil(total / limit))
       }
     })
   } catch (err) {
@@ -74,50 +142,128 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
+
+    const parsed = updateUserSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(', ')
+      return NextResponse.json(errorResponse(errors), { status: 400 })
     }
 
-    const body = await req.json()
-    const { id, name, role, status, maxDevices } = body
-
-    if (!id) {
-      return NextResponse.json(errorResponse('معرف المستخدم مطلوب'), { status: 400 })
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } })
-    if (!user) {
-      return NextResponse.json(errorResponse('المستخدم غير موجود'), { status: 404 })
-    }
-
-    const updateData: any = {}
-    if (name) updateData.name = name
-    if (role) updateData.role = role
-    if (status) updateData.status = status
-
-    await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: updateData
-    })
-
-    if (maxDevices !== undefined) {
-      await prisma.activationKey.updateMany({
-        where: { userId: parseInt(id) },
-        data: { maxDevices: parseInt(maxDevices) }
-      })
-    }
-
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'update_user',
-        details: { targetUserId: id, updates: updateData },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+    const update = parsed.data
+    const adminId = Number(guard.session?.user?.id)
+    const targetUser = await prisma.user.findUnique({
+      where: { id: update.id },
+      include: {
+        activationKeys: { select: { id: true, status: true } },
+        subscriptions: { select: { id: true, status: true } }
       }
     })
 
-    return NextResponse.json({ success: true, message: 'تم تحديث المستخدم بنجاح' })
+    if (!targetUser) {
+      return NextResponse.json(errorResponse('المستخدم غير موجود'), { status: 404 })
+    }
+
+    if (targetUser.id === adminId && (update.status === 'suspended' || update.status === 'deleted' || update.role === 'user')) {
+      return NextResponse.json(errorResponse('لا يمكن تعطيل أو تقليل صلاحية حساب الأدمن الحالي'), { status: 400 })
+    }
+
+    const updateData = sanitizeUserUpdate(update)
+    const statusChanged = update.status && update.status !== targetUser.status
+    const auditDetails: Prisma.InputJsonObject = {
+      targetUserId: targetUser.id,
+      previousStatus: targetUser.status,
+      updates: updateData,
+      maxDevices: update.maxDevices ?? null,
+      suspensionReason: update.suspensionReason || null
+    }
+    let emailSent = false
+    let emailError: string | undefined
+
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(updateData).length > 0) {
+        await tx.user.update({
+          where: { id: targetUser.id },
+          data: updateData
+        })
+      }
+
+      if (update.maxDevices !== undefined) {
+        await tx.activationKey.updateMany({
+          where: { userId: targetUser.id },
+          data: { maxDevices: update.maxDevices }
+        })
+      }
+
+      if (update.status === 'suspended') {
+        await tx.activationKey.updateMany({
+          where: {
+            userId: targetUser.id,
+            status: { notIn: ['revoked', 'expired'] }
+          },
+          data: { status: 'suspended' }
+        })
+        await tx.device.updateMany({
+          where: { userId: targetUser.id, isActive: true },
+          data: { isActive: false }
+        })
+        await tx.subscription.updateMany({
+          where: { userId: targetUser.id, status: { notIn: ['expired', 'cancelled'] } },
+          data: { status: 'suspended' }
+        })
+        await tx.nextAuthSession.deleteMany({ where: { userId: targetUser.id } })
+      }
+
+      if (update.status === 'active') {
+        await tx.activationKey.updateMany({
+          where: { userId: targetUser.id, status: 'suspended' },
+          data: { status: 'active' }
+        })
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: adminId,
+          action: update.status === 'suspended' ? 'suspend_user' : update.status === 'active' ? 'activate_user' : 'update_user',
+          details: auditDetails,
+          ipAddress: getClientIp(req)
+        }
+      })
+    })
+
+    if (update.status === 'active') {
+      await restoreSuspendedSubscriptions(targetUser.id)
+    }
+
+    if (statusChanged && update.status === 'suspended') {
+      const result = await sendEmail({
+        to: targetUser.email,
+        subject: 'تم حظر حسابك في SkyPro',
+        text: generateAccountSuspendedEmailText({
+          name: targetUser.name,
+          email: targetUser.email,
+          reason: update.suspensionReason
+        }),
+        html: generateAccountSuspendedEmail({
+          name: targetUser.name,
+          email: targetUser.email,
+          reason: update.suspensionReason
+        })
+      })
+      emailSent = result.success
+      emailError = result.error
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: update.status === 'suspended'
+        ? emailSent
+          ? 'تم حظر المستخدم وإرسال رسالة الإيميل بنجاح'
+          : 'تم حظر المستخدم، لكن فشل إرسال رسالة الإيميل'
+        : 'تم تحديث المستخدم بنجاح',
+      data: { emailSent, emailError }
+    })
   } catch (err) {
     console.error('Update user error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
@@ -126,10 +272,8 @@ export async function PUT(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
 
     const body = await req.json()
     const parsed = createUserSchema.safeParse(body)
@@ -149,47 +293,52 @@ export async function POST(req: NextRequest) {
     const passwordHash = hashPassword(password)
     const expiryDate = getActivationExpiry()
     const keyCode = generateApiKey()
+    const adminId = Number(guard.session?.user?.id)
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name: name || null,
-        passwordHash,
-        role: 'user',
-        status: 'active',
-        emailVerifiedAt: new Date()
-      }
-    })
+    const { user, activationKey } = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email,
+          name: name || null,
+          passwordHash,
+          role: 'user',
+          status: 'active',
+          emailVerifiedAt: new Date()
+        }
+      })
 
-    const activationKey = await prisma.activationKey.create({
-      data: {
-        keyCode,
-        userId: user.id,
-        status: 'active',
-        activatedAt: new Date(),
-        expiresAt: expiryDate
-      }
-    })
+      const activationKey = await tx.activationKey.create({
+        data: {
+          keyCode,
+          userId: user.id,
+          status: 'active',
+          activatedAt: new Date(),
+          expiresAt: expiryDate
+        }
+      })
 
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        keyId: activationKey.id,
-        status: 'active',
-        startedAt: new Date(),
-        expiresAt: expiryDate,
-        amount: parseFloat(process.env.DEFAULT_KEY_PRICE || '2000'),
-        currency: process.env.DEFAULT_KEY_CURRENCY || 'EGP'
-      }
-    })
+      await tx.subscription.create({
+        data: {
+          userId: user.id,
+          keyId: activationKey.id,
+          status: 'active',
+          startedAt: new Date(),
+          expiresAt: expiryDate,
+          amount: parseFloat(process.env.DEFAULT_KEY_PRICE || '2000'),
+          currency: process.env.DEFAULT_KEY_CURRENCY || 'EGP'
+        }
+      })
 
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'create_user',
-        details: { newUserId: user.id, email, keyCode },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
-      }
+      await tx.auditLog.create({
+        data: {
+          userId: adminId,
+          action: 'create_user',
+          details: { newUserId: user.id, email, keyCode },
+          ipAddress: getClientIp(req)
+        }
+      })
+
+      return { user, activationKey }
     })
 
     let emailSent = false
@@ -199,7 +348,7 @@ export async function POST(req: NextRequest) {
         name: name || 'عميلنا الكريم',
         email,
         password,
-        serial: keyCode,
+        serial: activationKey.keyCode,
         expiryDate: expiryDate.toLocaleDateString('ar-EG'),
         planLabel: 'اشتراك سنوي'
       }
@@ -221,8 +370,8 @@ export async function POST(req: NextRequest) {
       data: {
         user: { id: user.id, email: user.email, name: user.name },
         password,
-        serial: keyCode,
-        expiryDate: expiryDate,
+        serial: activationKey.keyCode,
+        expiryDate,
         emailSent,
         emailError
       }
@@ -235,33 +384,46 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const id = url.searchParams.get('id')
+    const id = Number(url.searchParams.get('id'))
+    const adminId = Number(guard.session?.user?.id)
 
-    if (!id) {
+    if (!Number.isInteger(id) || id <= 0) {
       return NextResponse.json(errorResponse('معرف المستخدم مطلوب'), { status: 400 })
     }
 
-    await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: { status: 'deleted' }
+    if (id === adminId) {
+      return NextResponse.json(errorResponse('لا يمكن حذف حساب الأدمن الحالي'), { status: 400 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id },
+        data: { status: 'deleted' }
+      })
+      await tx.activationKey.updateMany({
+        where: { userId: id },
+        data: { status: 'revoked' }
+      })
+      await tx.device.updateMany({
+        where: { userId: id },
+        data: { isActive: false }
+      })
+      await tx.nextAuthSession.deleteMany({ where: { userId: id } })
+      await tx.auditLog.create({
+        data: {
+          userId: adminId,
+          action: 'delete_user',
+          details: { targetUserId: id },
+          ipAddress: getClientIp(req)
+        }
+      })
     })
 
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'delete_user',
-        details: { targetUserId: id },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
-      }
-    })
-
-    return NextResponse.json({ success: true, message: 'تم حذف المستخدم بنجاح' })
+    return NextResponse.json({ success: true, message: 'تم حذف المستخدم وتعطيل مفاتيحه بنجاح' })
   } catch (err) {
     console.error('Delete user error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })

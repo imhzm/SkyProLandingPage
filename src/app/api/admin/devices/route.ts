@@ -1,23 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { errorResponse, getErrorMessage } from '@/lib/api'
+import { getClientIp, requireAdmin } from '@/lib/admin-security'
+
+export const dynamic = 'force-dynamic'
+
+const listDevicesSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(5).max(100).default(20),
+  userId: z.preprocess((value) => value === '' ? undefined : value, z.coerce.number().int().positive().optional())
+})
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin()
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const page = parseInt(url.searchParams.get('page') || '1')
-    const limit = parseInt(url.searchParams.get('limit') || '20')
-    const userId = url.searchParams.get('userId')
+    const parsed = listDevicesSchema.safeParse(Object.fromEntries(url.searchParams))
+    if (!parsed.success) {
+      return NextResponse.json(errorResponse('بيانات البحث غير صحيحة'), { status: 400 })
+    }
 
+    const { page, limit, userId } = parsed.data
     const where: any = {}
-    if (userId) where.userId = parseInt(userId)
+    if (userId) where.userId = userId
 
     const [devices, total] = await Promise.all([
       prisma.device.findMany({
@@ -26,7 +35,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         orderBy: { lastSeenAt: 'desc' },
         include: {
-          user: { select: { id: true, email: true, name: true } },
+          user: { select: { id: true, email: true, name: true, status: true } },
           key: { select: { keyCode: true, status: true } }
         }
       }),
@@ -40,7 +49,7 @@ export async function GET(req: NextRequest) {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(1, Math.ceil(total / limit))
       }
     })
   } catch (err) {
@@ -51,34 +60,32 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
-    }
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
 
     const url = new URL(req.url)
-    const id = url.searchParams.get('id')
+    const id = Number(url.searchParams.get('id'))
 
-    if (!id) {
+    if (!Number.isInteger(id) || id <= 0) {
       return NextResponse.json(errorResponse('معرف الجهاز مطلوب'), { status: 400 })
     }
 
-    const device = await prisma.device.findUnique({ where: { id: parseInt(id) } })
+    const device = await prisma.device.findUnique({ where: { id } })
     if (!device) {
       return NextResponse.json(errorResponse('الجهاز غير موجود'), { status: 404 })
     }
 
     await prisma.device.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { isActive: false, resetCount: device.resetCount + 1 }
     })
 
     await prisma.auditLog.create({
       data: {
-        userId: parseInt(session.user.id),
+        userId: Number(guard.session?.user.id),
         action: 'admin_reset_device',
         details: { deviceId: id, deviceFingerprint: device.deviceFingerprint },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+        ipAddress: getClientIp(req)
       }
     })
 

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
 
+export const dynamic = 'force-dynamic'
+
+const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إيقاف الدخول إلى البرنامج، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم.'
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url)
@@ -15,12 +19,20 @@ export async function GET(req: NextRequest) {
       where: { keyCode: key },
       include: {
         devices: { where: { isActive: true } },
-        user: { select: { id: true, email: true, name: true } }
+        user: { select: { id: true, email: true, name: true, status: true } }
       }
     })
 
     if (!activationKey) {
       return NextResponse.json(errorResponse('مفتاح التفعيل غير صالح'), { status: 404 })
+    }
+
+    if (activationKey.user?.status === 'suspended' || activationKey.status === 'suspended') {
+      return NextResponse.json(errorResponse(ACCOUNT_SUSPENDED_MESSAGE), { status: 403 })
+    }
+
+    if (activationKey.user && activationKey.user.status !== 'active') {
+      return NextResponse.json(errorResponse('الحساب غير نشط. تواصل مع الدعم الفني'), { status: 403 })
     }
 
     return NextResponse.json(successResponse({

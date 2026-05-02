@@ -6,6 +6,9 @@ import { generateSessionId, isKeyExpired, verifyPassword } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إيقاف الدخول إلى البرنامج، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم.'
+const ACCOUNT_INACTIVE_MESSAGE = 'الحساب غير نشط. تواصل مع الدعم الفني.'
+
 const desktopLoginSchema = z.object({
   email: z.string().email('بريد إلكتروني غير صالح'),
   password: z.string().min(1, 'كلمة المرور مطلوبة'),
@@ -39,8 +42,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse('بيانات تسجيل الدخول غير صحيحة'), { status: 401 })
     }
 
+    if (user.status === 'suspended') {
+      return NextResponse.json(errorResponse(ACCOUNT_SUSPENDED_MESSAGE), { status: 403 })
+    }
+
     if (user.status !== 'active') {
-      return NextResponse.json(errorResponse('الحساب غير نشط. تواصل مع الدعم الفني'), { status: 403 })
+      return NextResponse.json(errorResponse(ACCOUNT_INACTIVE_MESSAGE), { status: 403 })
     }
 
     const activationKey = await prisma.activationKey.findUnique({
@@ -56,6 +63,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse('السيريال غير مرتبط بهذا الحساب'), { status: 403 })
     }
 
+    if (activationKey.status === 'suspended') {
+      return NextResponse.json(errorResponse(ACCOUNT_SUSPENDED_MESSAGE), { status: 403 })
+    }
+
     if (activationKey.status === 'revoked') {
       return NextResponse.json(errorResponse('تم إلغاء هذا السيريال'), { status: 403 })
     }
@@ -64,10 +75,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse('انتهت صلاحية هذا السيريال'), { status: 403 })
     }
 
+    if (!['active', 'available', 'assigned'].includes(activationKey.status)) {
+      return NextResponse.json(errorResponse('هذا السيريال غير متاح للاستخدام حالياً'), { status: 403 })
+    }
+
     const activeDevices = activationKey.devices.filter((device) => device.isActive)
     const existingDevice = activeDevices.find((device) => device.deviceFingerprint === deviceFingerprint)
+    const inactiveDevice = activationKey.devices.find((device) => !device.isActive && device.deviceFingerprint === deviceFingerprint)
 
-    let deviceId = existingDevice?.id
+    let deviceId = existingDevice?.id || inactiveDevice?.id
     await prisma.$transaction(async (tx) => {
       if (!activationKey.userId) {
         await tx.activationKey.update({
@@ -84,6 +100,15 @@ export async function POST(req: NextRequest) {
         await tx.device.update({
           where: { id: existingDevice.id },
           data: { lastSeenAt: new Date() }
+        })
+      } else if (inactiveDevice) {
+        if (activeDevices.length >= activationKey.maxDevices) {
+          throw new Error(`DEVICE_LIMIT:${activationKey.maxDevices}`)
+        }
+
+        await tx.device.update({
+          where: { id: inactiveDevice.id },
+          data: { isActive: true, lastSeenAt: new Date() }
         })
       } else {
         if (activeDevices.length >= activationKey.maxDevices) {

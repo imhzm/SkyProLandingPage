@@ -4,6 +4,8 @@ import { verifyDeviceSchema } from '@/lib/validations'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
 import { isKeyExpired, getActivationExpiry } from '@/lib/utils'
 
+const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إيقاف الدخول إلى البرنامج، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم.'
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -18,11 +20,22 @@ export async function POST(req: NextRequest) {
 
     const activationKey = await prisma.activationKey.findUnique({
       where: { keyCode: key },
-      include: { devices: true }
+      include: {
+        devices: true,
+        user: { select: { id: true, status: true } }
+      }
     })
 
     if (!activationKey) {
       return NextResponse.json(errorResponse('مفتاح التفعيل غير صالح'), { status: 404 })
+    }
+
+    if (activationKey.user?.status === 'suspended' || activationKey.status === 'suspended') {
+      return NextResponse.json(errorResponse(ACCOUNT_SUSPENDED_MESSAGE), { status: 403 })
+    }
+
+    if (activationKey.user && activationKey.user.status !== 'active') {
+      return NextResponse.json(errorResponse('الحساب غير نشط. تواصل مع الدعم الفني'), { status: 403 })
     }
 
     if (activationKey.status === 'revoked') {
@@ -36,6 +49,10 @@ export async function POST(req: NextRequest) {
     const existingDevice = activationKey.devices.find(
       (d) => d.deviceFingerprint === deviceFingerprint && d.isActive
     )
+    const inactiveDevice = activationKey.devices.find(
+      (d) => d.deviceFingerprint === deviceFingerprint && !d.isActive
+    )
+    const activeDevices = activationKey.devices.filter((d) => d.isActive)
 
     if (existingDevice) {
       await prisma.device.update({
@@ -54,7 +71,29 @@ export async function POST(req: NextRequest) {
       }, 'تم التحقق من الجهاز بنجاح'))
     }
 
-    const activeDevices = activationKey.devices.filter((d) => d.isActive)
+    if (inactiveDevice) {
+      if (activeDevices.length >= activationKey.maxDevices) {
+        return NextResponse.json(errorResponse(
+          `تم الوصول للحد الأقصى من الأجهزة (${activationKey.maxDevices}). يرجى إعادة تعيين جهاز من لوحة التحكم.`
+        ), { status: 403 })
+      }
+
+      await prisma.device.update({
+        where: { id: inactiveDevice.id },
+        data: { isActive: true, lastSeenAt: new Date() }
+      })
+
+      return NextResponse.json(successResponse({
+        sessionId: inactiveDevice.id.toString(),
+        key: {
+          keyCode: activationKey.keyCode,
+          status: 'active',
+          expiresAt: activationKey.expiresAt,
+          maxDevices: activationKey.maxDevices
+        }
+      }, 'تم إعادة تفعيل الجهاز بنجاح'))
+    }
+
     if (activeDevices.length >= activationKey.maxDevices) {
       return NextResponse.json(errorResponse(
         `تم تجاوز الحد الأقصى للأجهزة (${activationKey.maxDevices}). يرجى إعادة تعيين جهاز أولاً`
