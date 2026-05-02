@@ -42,7 +42,7 @@ npm install --legacy-peer-deps
 npm run build
 
 # Restart the application
-pm2 restart all
+pm2 restart skypro-web --update-env
 ```
 
 ## Quick Deploy Command (from local)
@@ -54,7 +54,7 @@ git commit -m "Your commit message"
 git push origin main
 
 # Then SSH to server and pull
-ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin main && npm run build && pm2 restart all"
+ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin main && npm run build && PORT=3200 HOSTNAME=0.0.0.0 pm2 restart skypro-web --update-env"
 ```
 
 ## Application URLs
@@ -63,6 +63,23 @@ ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin mai
 - **Admin Dashboard:** `https://skypro.skywaveads.com/admin`
 - **Login Page:** `https://skypro.skywaveads.com/auth/login`
 - **API Base:** `https://skypro.skywaveads.com/api`
+
+## Production Process
+
+- **PM2 App:** `skypro-web`
+- **Port:** `3200`
+- **Runtime:** Next.js standalone
+- **Script:** `/var/www/skypro.skywaveads.com/.next/standalone/server.js`
+- **CWD:** `/var/www/skypro.skywaveads.com/.next/standalone`
+
+If the process needs to be recreated:
+
+```bash
+pm2 delete skypro-web
+cd /var/www/skypro.skywaveads.com
+PORT=3200 HOSTNAME=0.0.0.0 pm2 start /var/www/skypro.skywaveads.com/.next/standalone/server.js --name skypro-web --cwd /var/www/skypro.skywaveads.com/.next/standalone --update-env
+pm2 save
+```
 
 ## Admin Credentials
 
