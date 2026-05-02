@@ -162,6 +162,30 @@ export function FeaturesSection() {
             <ArrowLeft className="h-4 w-4 rotate-180" />
           </Link>
         </div>
+
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+            <img
+              src="https://images.pexels.com/photos/7567462/pexels-photo-7567462.jpeg?auto=compress&cs=tinysrgb&w=1400"
+              alt="لوحة تسويقية تعرض تحليلات ومؤشرات أداء"
+              className="h-60 w-full object-cover opacity-70"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#060d1b] via-[#060d1ba8] to-transparent" />
+            <div className="absolute bottom-0 right-0 left-0 p-5">
+              <h3 className="text-lg font-bold text-white">Dashboard متكامل لإدارة الحملات</h3>
+              <p className="mt-1 text-sm text-slate-300">تابع الأداء، قارن النتائج، وخصص الاستهداف من شاشة واحدة.</p>
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+            <img
+              src="https://images.pexels.com/photos/8438922/pexels-photo-8438922.jpeg?auto=compress&cs=tinysrgb&w=900"
+              alt="فريق يستخدم أدوات تحليل العملاء"
+              className="h-60 w-full object-cover opacity-75"
+              loading="lazy"
+            />
+          </div>
+        </div>
       </div>
     </section>
   )

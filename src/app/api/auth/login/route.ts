@@ -3,11 +3,26 @@ import { prisma } from '@/lib/db'
 import { loginSchema } from '@/lib/validations'
 import { verifyPassword, generateSessionId } from '@/lib/utils'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
-
-const loginAttempts = new Map<string, { count: number; lockedUntil: number }>()
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitedResponse,
+  rejectCrossSite,
+  rejectLargeJson,
+} from '@/lib/request-security'
 
 export async function POST(req: NextRequest) {
   try {
+    const crossSite = rejectCrossSite(req)
+    if (crossSite) return crossSite
+
+    const largePayload = rejectLargeJson(req, 16 * 1024)
+    if (largePayload) return largePayload
+
+    const ip = getClientIp(req)
+    const ipLimit = checkRateLimit(`web-login:ip:${ip}`, 20, 15 * 60 * 1000)
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
+
     const body = await req.json()
     const parsed = loginSchema.safeParse(body)
 
@@ -17,27 +32,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password } = parsed.data
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
-
-    const attempt = loginAttempts.get(ip)
-    if (attempt && attempt.lockedUntil > Date.now()) {
-      const remaining = Math.ceil((attempt.lockedUntil - Date.now()) / 60000)
-      return NextResponse.json(errorResponse(`الحساب مقفل. حاول مرة أخرى بعد ${remaining} دقيقة`), { status: 429 })
-    }
-
-    if (attempt && attempt.lockedUntil <= Date.now()) {
-      loginAttempts.delete(ip)
-    }
+    const emailLimit = checkRateLimit(`web-login:email:${email}`, 10, 15 * 60 * 1000)
+    if (!emailLimit.allowed) return rateLimitedResponse(emailLimit.retryAfter)
 
     const user = await prisma.user.findUnique({ where: { email } })
 
     if (!user || !user.passwordHash) {
-      incrementAttempts(ip)
       return NextResponse.json(errorResponse('بيانات الدخول غير صحيحة'), { status: 401 })
     }
 
-    if (user.status === 'suspended') {
-      return NextResponse.json(errorResponse('الحساب معلق. تواصل مع الدعم الفني'), { status: 403 })
+    if (user.status !== 'active') {
+      return NextResponse.json(errorResponse('الحساب غير نشط. تواصل مع الدعم الفني'), { status: 403 })
     }
 
     if (!user.emailVerifiedAt) {
@@ -46,11 +51,8 @@ export async function POST(req: NextRequest) {
 
     const isValid = verifyPassword(password, user.passwordHash)
     if (!isValid) {
-      incrementAttempts(ip)
       return NextResponse.json(errorResponse('بيانات الدخول غير صحيحة'), { status: 401 })
     }
-
-    loginAttempts.delete(ip)
 
     const sessionId = generateSessionId()
     await prisma.nextAuthSession.create({
@@ -87,13 +89,4 @@ export async function POST(req: NextRequest) {
     console.error('Login error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
   }
-}
-
-function incrementAttempts(ip: string) {
-  const attempt = loginAttempts.get(ip) || { count: 0, lockedUntil: 0 }
-  attempt.count++
-  if (attempt.count >= 5) {
-    attempt.lockedUntil = Date.now() + 15 * 60 * 1000
-  }
-  loginAttempts.set(ip, attempt)
 }

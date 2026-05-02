@@ -4,9 +4,26 @@ import { registerSchema } from '@/lib/validations'
 import { generateApiKey, getTrialEndDate, hashPassword } from '@/lib/utils'
 import { generateWelcomeEmail, generateWelcomeEmailText, sendEmail } from '@/lib/email'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitedResponse,
+  rejectCrossSite,
+  rejectLargeJson,
+} from '@/lib/request-security'
 
 export async function POST(req: NextRequest) {
   try {
+    const crossSite = rejectCrossSite(req)
+    if (crossSite) return crossSite
+
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
+
+    const ipAddress = getClientIp(req)
+    const ipLimit = checkRateLimit(`register:ip:${ipAddress}`, 10, 60 * 60 * 1000)
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
+
     const body = await req.json()
     const parsed = registerSchema.safeParse(body)
 
@@ -16,6 +33,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, email, password } = parsed.data
+    const emailLimit = checkRateLimit(`register:email:${email}`, 3, 60 * 60 * 1000)
+    if (!emailLimit.allowed) return rateLimitedResponse(emailLimit.retryAfter)
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
@@ -27,7 +46,6 @@ export async function POST(req: NextRequest) {
     const maxDevices = parseInt(process.env.DEFAULT_MAX_DEVICES || '1', 10)
     const trialEndsAt = getTrialEndDate()
     const keyCode = generateApiKey()
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
 
     const { user, activationKey } = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -69,7 +87,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: user.id,
           action: 'register',
-          details: { keyCode, trialDays },
+          details: { keyId: activationKey.id, trialDays },
           ipAddress
         }
       })

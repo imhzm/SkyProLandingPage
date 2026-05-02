@@ -98,6 +98,49 @@ export function HeroSection() {
               </div>
             ))}
           </div>
+
+          <div className={`mt-14 grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 max-w-5xl mx-auto transition-all duration-700 delay-[550ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+              <img
+                src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1400"
+                alt="فريق تسويق رقمي يعمل على لوحة تحليل حملات"
+                className="h-64 w-full object-cover opacity-70"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#060d1b] via-[#060d1bcc] to-transparent" />
+              <div className="absolute bottom-0 right-0 left-0 p-5 text-right">
+                <div className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                  Live Campaign Room
+                </div>
+                <h3 className="mt-2 text-lg font-bold text-white">راقب النتائج لحظيًا أثناء الإرسال</h3>
+                <p className="mt-1 text-sm text-slate-300">معدلات فتح واستجابة وتقارير أداء داخل لوحة موحّدة.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+                <img
+                  src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  alt="تحليل بيانات العملاء"
+                  className="h-32 w-full object-cover opacity-75"
+                  loading="lazy"
+                />
+              </div>
+              <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+                <img
+                  src="https://images.pexels.com/photos/6956897/pexels-photo-6956897.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  alt="إدارة رسائل تسويقية جماعية"
+                  className="h-32 w-full object-cover opacity-75"
+                  loading="lazy"
+                />
+              </div>
+              <div className="col-span-2 rounded-3xl border border-sky-500/20 bg-gradient-to-r from-sky-500/10 to-violet-500/10 p-4 text-right">
+                <p className="text-sm text-slate-300">
+                  صور التشغيل الحقيقية تضيف ثقة أكبر للزائر وتوضح قيمة المنتج من أول شاشة.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

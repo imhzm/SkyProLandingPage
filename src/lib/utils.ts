@@ -1,8 +1,13 @@
-import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
+function randomHex(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength)
+  globalThis.crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 export function hashPassword(password: string): string {
-  return bcrypt.hashSync(password, 10)
+  return bcrypt.hashSync(password, 12)
 }
 
 export function verifyPassword(password: string, hash: string): boolean {
@@ -11,13 +16,13 @@ export function verifyPassword(password: string, hash: string): boolean {
 
 export function generateApiKey(): string {
   const prefix = 'SKY1-PRO2'
-  const segment = () => crypto.randomBytes(2).toString('hex').toUpperCase().padEnd(4, '0').slice(0, 4)
+  const segment = () => randomHex(2).toUpperCase().padEnd(4, '0').slice(0, 4)
   const year = new Date().getFullYear() + 1
   return `${prefix}-${segment()}-${segment()}-${year}`
 }
 
 export function generateSessionId(): string {
-  return crypto.randomBytes(32).toString('hex')
+  return randomHex(32)
 }
 
 export function isKeyExpired(expiresAt: Date | null): boolean {

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { errorResponse, getErrorMessage } from '@/lib/api'
 import { getClientIp, requireAdmin } from '@/lib/admin-security'
+import { rejectLargeJson } from '@/lib/request-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
   try {
     const guard = await requireAdmin(req, { stateChanging: true })
     if (guard.response) return guard.response
+
+    const largePayload = rejectLargeJson(req, 8 * 1024)
+    if (largePayload) return largePayload
 
     const parsed = settingSchema.safeParse(await req.json())
     if (!parsed.success) {

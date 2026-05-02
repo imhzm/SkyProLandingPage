@@ -4,6 +4,7 @@ import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
 import { generateApiKey, getTrialEndDate, verifyPassword } from '@/lib/utils'
+import { checkRateLimit } from '@/lib/request-security'
 
 async function sendWelcomeEmailThroughApi(subject: string, welcomeData: Record<string, unknown>) {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '')
@@ -30,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: false,
     }),
     Credentials({
       name: 'credentials',
@@ -43,8 +44,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
+        const email = String(credentials.email).trim().toLowerCase()
+        const emailLimit = checkRateLimit(`nextauth-credentials:${email}`, 12, 15 * 60 * 1000)
+        if (!emailLimit.allowed) {
+          return null
+        }
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string }
+          where: { email }
         })
 
         if (!user || !user.passwordHash) {
@@ -95,6 +102,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/auth/login'
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email }
+        })
+
+        if (existingUser && existingUser.status !== 'active') {
+          return false
+        }
+      }
+
+      return true
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
@@ -172,6 +192,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.id = String(newUser.id)
           token.role = 'user'
         } else {
+          if (existingUser.status !== 'active') {
+            throw new Error('AccessDenied')
+          }
+
           const existingKey = await prisma.activationKey.findFirst({
             where: {
               userId: existingUser.id,
@@ -254,12 +278,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
+      if (token.id) {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: Number(token.id) },
+          select: { role: true, status: true }
+        })
+
+        if (!currentUser || currentUser.status !== 'active') {
+          token.role = 'blocked'
+          ;(token as any).status = currentUser?.status || 'deleted'
+        } else {
+          token.role = currentUser.role
+          ;(token as any).status = currentUser.status
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        ;(session.user as any).status = (token as any).status as string
       }
       return session
     }

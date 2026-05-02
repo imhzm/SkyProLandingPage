@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
+import crypto from 'crypto'
 import { prisma } from '@/lib/db'
 import { hashPassword, generateApiKey, getActivationExpiry } from '@/lib/utils'
 import {
@@ -14,6 +15,7 @@ import {
 import { errorResponse, getErrorMessage } from '@/lib/api'
 import { createUserSchema } from '@/lib/validations'
 import { getClientIp, requireAdmin } from '@/lib/admin-security'
+import { rejectLargeJson } from '@/lib/request-security'
 
 const userStatusSchema = z.enum(['active', 'suspended', 'deleted'])
 const userRoleSchema = z.enum(['user', 'admin'])
@@ -60,6 +62,30 @@ async function restoreSuspendedSubscriptions(userId: number) {
       data: { status: isTrial ? 'trial' : isActive ? 'active' : 'expired' }
     })
   }
+}
+
+function generateSecurePassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const lower = 'abcdefghijkmnopqrstuvwxyz'
+  const digits = '23456789'
+  const symbols = '!@#$%^&*'
+  const all = upper + lower + digits + symbols
+
+  const pick = (pool: string) => pool[crypto.randomInt(0, pool.length)]
+  const chars = [
+    pick(upper),
+    pick(lower),
+    pick(digits),
+    pick(symbols),
+    ...Array.from({ length: 8 }, () => pick(all))
+  ]
+
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+
+  return chars.join('')
 }
 
 export async function GET(req: NextRequest) {
@@ -144,6 +170,9 @@ export async function PUT(req: NextRequest) {
   try {
     const guard = await requireAdmin(req, { stateChanging: true })
     if (guard.response) return guard.response
+
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
 
     const parsed = updateUserSchema.safeParse(await req.json())
     if (!parsed.success) {
@@ -275,6 +304,9 @@ export async function POST(req: NextRequest) {
     const guard = await requireAdmin(req, { stateChanging: true })
     if (guard.response) return guard.response
 
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
+
     const body = await req.json()
     const parsed = createUserSchema.safeParse(body)
     if (!parsed.success) {
@@ -289,7 +321,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse('البريد الإلكتروني مسجل مسبقاً'), { status: 400 })
     }
 
-    const password = Math.random().toString(36).slice(-10) + 'A1!'
+    const password = generateSecurePassword()
     const passwordHash = hashPassword(password)
     const expiryDate = getActivationExpiry()
     const keyCode = generateApiKey()
@@ -333,7 +365,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: adminId,
           action: 'create_user',
-          details: { newUserId: user.id, email, keyCode },
+          details: { newUserId: user.id, email, keyId: activationKey.id },
           ipAddress: getClientIp(req)
         }
       })

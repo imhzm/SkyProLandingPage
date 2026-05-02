@@ -12,17 +12,18 @@ function withSecurityHeaders(response: NextResponse) {
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
+  const userStatus = (req.auth?.user as { status?: string } | undefined)?.status
 
   if (pathname.startsWith('/admin')) {
     if (!req.auth) {
       return withSecurityHeaders(NextResponse.redirect(new URL('/auth/login', req.url)))
     }
-    if (req.auth.user?.role !== 'admin') {
+    if (req.auth.user?.role !== 'admin' || userStatus !== 'active') {
       return withSecurityHeaders(NextResponse.redirect(new URL('/', req.url)))
     }
   }
 
-  if (pathname.startsWith('/auth') && pathname !== '/auth/callback' && req.auth) {
+  if (pathname.startsWith('/auth') && pathname !== '/auth/callback' && req.auth && userStatus === 'active') {
     return withSecurityHeaders(NextResponse.redirect(new URL('/', req.url)))
   }
 

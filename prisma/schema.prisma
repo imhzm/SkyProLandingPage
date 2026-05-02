@@ -8,20 +8,22 @@ datasource db {
 }
 
 model User {
-  id             Int          @id @default(autoincrement())
-  email          String       @unique
-  passwordHash   String?      @map("password_hash")
-  name           String?
-  avatarUrl      String?      @map("avatar_url")
-  role           String       @default("user")
-  status         String       @default("active")
-  emailVerifiedAt DateTime?   @map("email_verified_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  passwordHash    String?   @map("password_hash")
+  name            String?
+  avatarUrl       String?   @map("avatar_url")
+  role            String    @default("user")
+  status          String    @default("active")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   activationKeys ActivationKey[]
   devices        Device[]
   subscriptions  Subscription[]
+  invoices       Invoice[]
+  payments       Payment[]
   auditLogs      AuditLog[]
 
   accounts Account[]
@@ -31,18 +33,18 @@ model User {
 }
 
 model Account {
-  id                Int       @id @default(autoincrement())
-  userId            Int       @map("user_id")
+  id                Int     @id @default(autoincrement())
+  userId            Int     @map("user_id")
   type              String
   provider          String
-  providerAccountId String    @map("provider_account_id")
-  refresh_token     String?   @map("refresh_token")  @db.Text
-  access_token      String?   @map("access_token")   @db.Text
-  expires_at         Int?      @map("expires_at")
-  token_type        String?   @map("token_type")
-  scope             String?   @db.Text
-  id_token          String?   @map("id_token")        @db.Text
-  session_state     String?   @map("session_state")    @db.Text
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @map("refresh_token") @db.Text
+  access_token      String? @map("access_token") @db.Text
+  expires_at        Int?    @map("expires_at")
+  token_type        String? @map("token_type")
+  scope             String? @db.Text
+  id_token          String? @map("id_token") @db.Text
+  session_state     String? @map("session_state") @db.Text
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -51,9 +53,9 @@ model Account {
 }
 
 model NextAuthSession {
-  id           Int       @id @default(autoincrement())
-  sessionToken String    @unique @map("session_token")
-  userId       Int       @map("user_id")
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique @map("session_token")
+  userId       Int      @map("user_id")
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -73,33 +75,33 @@ model ActivationKey {
   expiresAt    DateTime? @map("expires_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  user      User?      @relation(fields: [userId], references: [id])
-  devices   Device[]
+  user         User?         @relation(fields: [userId], references: [id])
+  devices      Device[]
   subscription Subscription?
 
   @@map("activation_keys")
 }
 
 model Device {
-  id                Int       @id @default(autoincrement())
-  userId            Int       @map("user_id")
-  keyId             Int       @map("key_id")
-  deviceFingerprint String    @map("device_fingerprint")
-  deviceName        String?   @map("device_name")
-  osInfo            String?   @map("os_info")
-  cpuInfo           String?   @map("cpu_info")
-  ramInfo           String?   @map("ram_info")
-  diskInfo          String?   @map("disk_info")
-  gpuInfo           String?   @map("gpu_info")
-  screenResolution  String?   @map("screen_resolution")
-  isActive          Boolean   @default(true) @map("is_active")
-  resetCount        Int       @default(0) @map("reset_count")
-  maxResetsPerYear  Int       @default(2) @map("max_resets_per_year")
-  firstSeenAt       DateTime  @default(now()) @map("first_seen_at")
-  lastSeenAt        DateTime  @default(now()) @updatedAt @map("last_seen_at")
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
+  keyId             Int      @map("key_id")
+  deviceFingerprint String   @map("device_fingerprint")
+  deviceName        String?  @map("device_name")
+  osInfo            String?  @map("os_info")
+  cpuInfo           String?  @map("cpu_info")
+  ramInfo           String?  @map("ram_info")
+  diskInfo          String?  @map("disk_info")
+  gpuInfo           String?  @map("gpu_info")
+  screenResolution  String?  @map("screen_resolution")
+  isActive          Boolean  @default(true) @map("is_active")
+  resetCount        Int      @default(0) @map("reset_count")
+  maxResetsPerYear  Int      @default(2) @map("max_resets_per_year")
+  firstSeenAt       DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt        DateTime @default(now()) @updatedAt @map("last_seen_at")
 
-  user User           @relation(fields: [userId], references: [id])
-  key  ActivationKey  @relation(fields: [keyId], references: [id])
+  user User          @relation(fields: [userId], references: [id])
+  key  ActivationKey @relation(fields: [keyId], references: [id])
 
   @@unique([deviceFingerprint, keyId])
   @@map("devices")
@@ -119,19 +121,75 @@ model Subscription {
   currency      String    @default("EGP")
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  user User           @relation(fields: [userId], references: [id])
-  key  ActivationKey? @relation(fields: [keyId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  key      ActivationKey? @relation(fields: [keyId], references: [id])
+  invoices Invoice[]
+  payments Payment[]
 
   @@map("subscriptions")
 }
 
+model Invoice {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  subscriptionId Int?      @map("subscription_id")
+  invoiceNumber  String    @unique @map("invoice_number")
+  status         String    @default("draft")
+  subtotal       Float     @default(0)
+  taxAmount      Float     @default(0) @map("tax_amount")
+  discountAmount Float     @default(0) @map("discount_amount")
+  totalAmount    Float     @default(0) @map("total_amount")
+  currency       String    @default("EGP")
+  dueDate        DateTime? @map("due_date")
+  paidAt         DateTime? @map("paid_at")
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Payment {
+  id             Int       @id @default(autoincrement())
+  userId         Int?      @map("user_id")
+  subscriptionId Int?      @map("subscription_id")
+  invoiceId      Int?      @map("invoice_id")
+  provider       String?
+  providerRef    String?   @map("provider_ref")
+  status         String    @default("pending")
+  amount         Float
+  currency       String    @default("EGP")
+  method         String?   @map("method")
+  paidAt         DateTime? @map("paid_at")
+  metadata       Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user         User?         @relation(fields: [userId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  invoice      Invoice?      @relation(fields: [invoiceId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payments")
+}
+
 model AuditLog {
-  id        Int       @id @default(autoincrement())
-  userId    Int?      @map("user_id")
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
   action    String
   details   Json?
-  ipAddress String?   @map("ip_address")
-  createdAt DateTime  @default(now()) @map("created_at")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -139,17 +197,17 @@ model AuditLog {
 }
 
 model SystemSetting {
-  id           Int       @id @default(autoincrement())
-  settingKey   String    @unique @map("setting_key")
-  settingValue String?   @map("setting_value")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id           Int      @id @default(autoincrement())
+  settingKey   String   @unique @map("setting_key")
+  settingValue String?  @map("setting_value")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
 }
 
 model VerificationToken {
   identifier String
-  token      String    @unique
+  token      String   @unique
   expires    DateTime
 
   @@map("verification_tokens")

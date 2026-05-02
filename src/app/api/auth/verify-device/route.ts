@@ -3,11 +3,23 @@ import { prisma } from '@/lib/db'
 import { verifyDeviceSchema } from '@/lib/validations'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
 import { isKeyExpired, getActivationExpiry } from '@/lib/utils'
+import { getClientIp, rejectLargeJson } from '@/lib/request-security'
 
 const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إيقاف الدخول إلى البرنامج، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم.'
+const verifyDeviceAttempts = new Map<string, { count: number; lockedUntil: number }>()
 
 export async function POST(req: NextRequest) {
   try {
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
+
+    const ipAddress = getClientIp(req)
+    const attempt = verifyDeviceAttempts.get(ipAddress)
+    if (attempt && attempt.lockedUntil > Date.now()) {
+      return NextResponse.json(errorResponse('طلبات كثيرة من نفس الشبكة. حاول لاحقًا.'), { status: 429 })
+    }
+    if (attempt && attempt.lockedUntil <= Date.now()) verifyDeviceAttempts.delete(ipAddress)
+
     const body = await req.json()
     const parsed = verifyDeviceSchema.safeParse(body)
 
@@ -27,6 +39,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!activationKey) {
+      incrementVerifyAttempts(ipAddress)
       return NextResponse.json(errorResponse('مفتاح التفعيل غير صالح'), { status: 404 })
     }
 
@@ -39,10 +52,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (activationKey.status === 'revoked') {
+      incrementVerifyAttempts(ipAddress)
       return NextResponse.json(errorResponse('تم إلغاء هذا المفتاح'), { status: 403 })
     }
 
     if (activationKey.status === 'expired' || isKeyExpired(activationKey.expiresAt)) {
+      incrementVerifyAttempts(ipAddress)
       return NextResponse.json(errorResponse('انتهت صلاحية هذا المفتاح'), { status: 403 })
     }
 
@@ -59,6 +74,7 @@ export async function POST(req: NextRequest) {
         where: { id: existingDevice.id },
         data: { lastSeenAt: new Date() }
       })
+      verifyDeviceAttempts.delete(ipAddress)
 
       return NextResponse.json(successResponse({
         sessionId: existingDevice.id.toString(),
@@ -82,6 +98,7 @@ export async function POST(req: NextRequest) {
         where: { id: inactiveDevice.id },
         data: { isActive: true, lastSeenAt: new Date() }
       })
+      verifyDeviceAttempts.delete(ipAddress)
 
       return NextResponse.json(successResponse({
         sessionId: inactiveDevice.id.toString(),
@@ -111,9 +128,13 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    if (!activationKey.userId) {
+      return NextResponse.json(errorResponse('المفتاح غير مرتبط بحساب. استخدم تسجيل الدخول عبر التطبيق أولاً.'), { status: 403 })
+    }
+
     const device = await prisma.device.create({
       data: {
-        userId: activationKey.userId || 0,
+        userId: activationKey.userId,
         keyId: activationKey.id,
         deviceFingerprint,
         deviceName: deviceInfo?.hostname,
@@ -131,10 +152,11 @@ export async function POST(req: NextRequest) {
           userId: activationKey.userId,
           action: 'device_verified',
           details: { deviceFingerprint, deviceId: device.id },
-          ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+          ipAddress
         }
       })
     }
+    verifyDeviceAttempts.delete(ipAddress)
 
     return NextResponse.json(successResponse({
       sessionId: device.id.toString(),
@@ -149,4 +171,13 @@ export async function POST(req: NextRequest) {
     console.error('Verify device error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
   }
+}
+
+function incrementVerifyAttempts(ip: string) {
+  const attempt = verifyDeviceAttempts.get(ip) || { count: 0, lockedUntil: 0 }
+  attempt.count++
+  if (attempt.count >= 15) {
+    attempt.lockedUntil = Date.now() + 15 * 60 * 1000
+  }
+  verifyDeviceAttempts.set(ip, attempt)
 }

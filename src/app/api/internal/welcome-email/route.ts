@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { generateWelcomeEmail, generateWelcomeEmailText, sendEmail, type WelcomeEmailData } from '@/lib/email'
+import { rejectLargeJson } from '@/lib/request-security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,13 +11,23 @@ interface WelcomeEmailRequest {
   welcomeData?: WelcomeEmailData
 }
 
-export async function POST(req: NextRequest) {
+function authorized(authorization: string | null) {
   const secret = process.env.NEXTAUTH_SECRET
-  const authorization = req.headers.get('authorization')
+  if (!secret || !authorization) return false
 
-  if (!secret || authorization !== `Bearer ${secret}`) {
+  const expected = `Bearer ${secret}`
+  if (authorization.length !== expected.length) return false
+
+  return crypto.timingSafeEqual(Buffer.from(authorization), Buffer.from(expected))
+}
+
+export async function POST(req: NextRequest) {
+  if (!authorized(req.headers.get('authorization'))) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
   }
+
+  const largePayload = rejectLargeJson(req, 32 * 1024)
+  if (largePayload) return largePayload
 
   const body = (await req.json()) as WelcomeEmailRequest
   const welcomeData = body.welcomeData

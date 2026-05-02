@@ -82,6 +82,21 @@ export default async function PlatformPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Navbar />
+      <section className="relative overflow-hidden pt-24 pb-8 bg-[#060d1b]">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.pexels.com/photos/7681098/pexels-photo-7681098.jpeg?auto=compress&cs=tinysrgb&w=1800"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover opacity-[0.16]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#060d1bcc] via-[#060d1be8] to-[#060d1b]" />
+        </div>
+        <div className="relative section-shell text-center">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white">{data.arabicName}</h1>
+          <p className="mt-3 text-slate-300 max-w-2xl mx-auto">{data.schemaDescription}</p>
+        </div>
+      </section>
       <PlatformPageContent data={data} />
       <Footer />
       <WhatsAppButton />

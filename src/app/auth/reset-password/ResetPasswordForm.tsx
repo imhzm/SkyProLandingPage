@@ -25,8 +25,8 @@ export default function ResetPasswordForm() {
       return
     }
 
-    if (password.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,128}$/.test(password)) {
+      setError('كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي على حرف كبير وصغير ورقم ورمز خاص')
       return
     }
 
@@ -101,9 +101,9 @@ export default function ResetPasswordForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="admin-input pr-10 pl-10"
-                  placeholder="6 أحرف على الأقل"
+                  placeholder="10 أحرف مع رقم ورمز"
                   required
-                  minLength={6}
+                  minLength={10}
                 />
                 <button
                   type="button"

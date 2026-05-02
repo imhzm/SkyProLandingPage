@@ -30,6 +30,12 @@ yarn-error.log*
 .env*.local
 *.backup
 
+# local maintenance scripts that may contain one-off credentials
+clean-db*.js
+clean-db*.cjs
+prisma/delete-all-users.cjs
+prisma/remote-db-manage.cjs
+
 # vercel
 .vercel
 

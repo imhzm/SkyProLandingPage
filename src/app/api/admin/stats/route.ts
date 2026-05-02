@@ -66,7 +66,25 @@ export async function GET() {
     ])
 
     const keyPrice = parseFloat(priceSetting?.settingValue || process.env.DEFAULT_KEY_PRICE || '2000') || 2000
-    const totalRevenue = activeKeys * keyPrice
+
+    let totalRevenue = activeKeys * keyPrice
+    let revenueSource: 'payments' | 'estimated_keys' = 'estimated_keys'
+
+    try {
+      const paidRevenue = await prisma.payment.aggregate({
+        where: { status: 'paid' },
+        _sum: { amount: true }
+      })
+      if (typeof paidRevenue._sum.amount === 'number' && paidRevenue._sum.amount >= 0) {
+        totalRevenue = Math.round(paidRevenue._sum.amount * 100) / 100
+        revenueSource = 'payments'
+      }
+    } catch {
+      // Fallback for environments where payments table is not migrated yet.
+      totalRevenue = activeKeys * keyPrice
+      revenueSource = 'estimated_keys'
+    }
+
     const monthlyRevenue = Math.round(totalRevenue / 12)
 
     return NextResponse.json({
@@ -90,6 +108,7 @@ export async function GET() {
         suspendedSubscriptions,
         totalRevenue,
         monthlyRevenue,
+        revenueSource,
         recentUsers,
         recentAuditLogs
       }

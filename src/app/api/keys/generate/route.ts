@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { generateKeysSchema } from '@/lib/validations'
 import { generateApiKey } from '@/lib/utils'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
+import { getClientIp, requireAdmin } from '@/lib/admin-security'
+import { rejectLargeJson } from '@/lib/request-security'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(errorResponse('غير مصرح'), { status: 403 })
+    const guard = await requireAdmin(req, { stateChanging: true })
+    if (guard.response) return guard.response
+
+    const largePayload = rejectLargeJson(req, 16 * 1024)
+    if (largePayload) return largePayload
+
+    const parsed = generateKeysSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(', ')
+      return NextResponse.json(errorResponse(errors), { status: 400 })
     }
 
-    const body = await req.json()
-    const { count = 1, plan = 'pro', durationDays = 365, maxDevices = 1 } = body
-
-    if (count < 1 || count > 100) {
-      return NextResponse.json(errorResponse('العدد يجب أن يكون بين 1 و 100'), { status: 400 })
-    }
-
+    const { count, plan, durationDays, maxDevices } = parsed.data
     const keys = []
     for (let i = 0; i < count; i++) {
       const keyCode = generateApiKey()
@@ -35,10 +38,10 @@ export async function POST(req: NextRequest) {
 
     await prisma.auditLog.create({
       data: {
-        userId: parseInt(session.user.id),
+        userId: parseInt(guard.session!.user.id),
         action: 'generate_keys',
-        details: { count, plan },
-        ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+        details: { count, plan, durationDays, maxDevices },
+        ipAddress: getClientIp(req)
       }
     })
 

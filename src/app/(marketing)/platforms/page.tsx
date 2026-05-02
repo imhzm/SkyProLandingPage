@@ -43,6 +43,23 @@ export default function PlatformsPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
+      <section className="relative overflow-hidden pt-28 pb-10 bg-[#060d1b]">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.pexels.com/photos/7567443/pexels-photo-7567443.jpeg?auto=compress&cs=tinysrgb&w=1800"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover opacity-[0.18]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#060d1bcc] via-[#060d1be6] to-[#060d1b]" />
+        </div>
+        <div className="relative section-shell">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white text-center">المنصات المدعومة</h1>
+          <p className="text-slate-300 mt-3 text-center max-w-2xl mx-auto">
+            اختر المنصة المناسبة وابدأ أتمتة التسويق بذكاء أعلى وسرعة تنفيذ أكبر.
+          </p>
+        </div>
+      </section>
       <PlatformsListContent pages={pages} />
       <Footer />
       <WhatsAppButton />

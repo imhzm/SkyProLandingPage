@@ -56,6 +56,12 @@ export default function LoginPage() {
       <div className="absolute inset-0">
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-violet-500/5 rounded-full blur-[100px]" />
+        <img
+          src="https://images.pexels.com/photos/7688336/pexels-photo-7688336.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-[0.14]"
+        />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -160,6 +166,15 @@ export default function LoginPage() {
               أنشئ حساب مجاناً
             </Link>
           </p>
+
+          <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+            <img
+              src="https://images.pexels.com/photos/7567434/pexels-photo-7567434.jpeg?auto=compress&cs=tinysrgb&w=1200"
+              alt="لوحة تحكم لحملات التسويق"
+              className="h-24 w-full object-cover opacity-70"
+              loading="lazy"
+            />
+          </div>
         </div>
       </div>
     </div>

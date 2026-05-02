@@ -112,6 +112,33 @@ export function HowItWorksSection() {
           </div>
         </motion.div>
 
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <img
+              src="https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=900"
+              alt="تسجيل حساب جديد في منصة SaaS"
+              className="h-36 w-full object-cover opacity-75"
+              loading="lazy"
+            />
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <img
+              src="https://images.pexels.com/photos/6804063/pexels-photo-6804063.jpeg?auto=compress&cs=tinysrgb&w=900"
+              alt="تنصيب تطبيق سطح مكتب للعمل التسويقي"
+              className="h-36 w-full object-cover opacity-75"
+              loading="lazy"
+            />
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <img
+              src="https://images.pexels.com/photos/7688460/pexels-photo-7688460.jpeg?auto=compress&cs=tinysrgb&w=900"
+              alt="إطلاق حملة تسويق وقياس النتائج"
+              className="h-36 w-full object-cover opacity-75"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
         <div className="mt-14 text-center">
           <a href="/auth/register" className="btn-primary text-base px-10 py-4 shadow-2xl shadow-sky-500/20">
             ابدأ التجربة المجانية الآن

@@ -25,6 +25,10 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'المستخدم غير موجود' }, { status: 404 })
     }
 
+    if (user.status !== 'active') {
+      return NextResponse.json({ success: false, error: 'الحساب غير نشط' }, { status: 403 })
+    }
+
     return NextResponse.json({
       success: true,
       data: {

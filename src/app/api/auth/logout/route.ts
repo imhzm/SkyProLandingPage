@@ -1,8 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { getClientIp, rejectCrossSite } from '@/lib/request-security'
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const crossSite = rejectCrossSite(req)
+    if (crossSite) return crossSite
+
     const session = await auth()
 
     if (session?.user?.id) {
@@ -11,7 +15,7 @@ export async function POST() {
         data: {
           userId: parseInt(session.user.id),
           action: 'logout',
-          ipAddress: '0.0.0.0'
+          ipAddress: getClientIp(req)
         }
       })
     }

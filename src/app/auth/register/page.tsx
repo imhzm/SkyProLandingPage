@@ -24,8 +24,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,128}$/.test(password)) {
+      setError('كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي على حرف كبير وصغير ورقم ورمز خاص')
       return
     }
 
@@ -60,6 +60,12 @@ export default function RegisterPage() {
       <div className="absolute inset-0">
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-violet-500/5 rounded-full blur-[100px]" />
+        <img
+          src="https://images.pexels.com/photos/7681096/pexels-photo-7681096.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-[0.14]"
+        />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -144,9 +150,9 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="admin-input pr-10 pl-10"
-                  placeholder="6 أحرف على الأقل"
+                  placeholder="10 أحرف مع رقم ورمز"
                   required
-                  minLength={6}
+                  minLength={10}
                 />
                 <button
                   type="button"
@@ -188,6 +194,25 @@ export default function RegisterPage() {
               تسجيل الدخول
             </Link>
           </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="overflow-hidden rounded-xl border border-white/10">
+              <img
+                src="https://images.pexels.com/photos/3184405/pexels-photo-3184405.jpeg?auto=compress&cs=tinysrgb&w=900"
+                alt="فريق التسويق يعمل على حملات العملاء"
+                className="h-20 w-full object-cover opacity-75"
+                loading="lazy"
+              />
+            </div>
+            <div className="overflow-hidden rounded-xl border border-white/10">
+              <img
+                src="https://images.pexels.com/photos/7567558/pexels-photo-7567558.jpeg?auto=compress&cs=tinysrgb&w=900"
+                alt="تحليل أداء الحملات التسويقية"
+                className="h-20 w-full object-cover opacity-75"
+                loading="lazy"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

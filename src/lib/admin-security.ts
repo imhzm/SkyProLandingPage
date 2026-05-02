@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Session } from 'next-auth'
 import { auth } from '@/lib/auth'
 import { errorResponse } from '@/lib/api'
+import { getClientIp, sameOrigin } from '@/lib/request-security'
+
+export { getClientIp }
 
 type AdminSession = Session | null
 
@@ -10,30 +13,10 @@ interface AdminGuardResult {
   response: NextResponse | null
 }
 
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get('origin')
-  const host = req.headers.get('host')
-  const forwardedHost = req.headers.get('x-forwarded-host')
-  const fetchSite = req.headers.get('sec-fetch-site')
-
-  if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
-    return false
-  }
-
-  if (!origin) return true
-
-  try {
-    const originUrl = new URL(origin)
-    return originUrl.host === host || originUrl.host === forwardedHost
-  } catch {
-    return false
-  }
-}
-
 export async function requireAdmin(req?: NextRequest, options: { stateChanging?: boolean } = {}): Promise<AdminGuardResult> {
   const session = await auth()
 
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || session.user.role !== 'admin' || (session.user as { status?: string }).status !== 'active') {
     return {
       session,
       response: NextResponse.json(errorResponse('غير مصرح'), { status: 403 }),
@@ -48,10 +31,4 @@ export async function requireAdmin(req?: NextRequest, options: { stateChanging?:
   }
 
   return { session, response: null }
-}
-
-export function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || '0.0.0.0'
 }

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { errorResponse, getErrorMessage, successResponse } from '@/lib/api'
-import { generateSessionId, isKeyExpired, verifyPassword } from '@/lib/utils'
+import { generateSessionId, getActivationExpiry, isKeyExpired, verifyPassword } from '@/lib/utils'
+import { checkRateLimit, getClientIp, rateLimitedResponse, rejectLargeJson } from '@/lib/request-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,24 +11,31 @@ const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إي
 const ACCOUNT_INACTIVE_MESSAGE = 'الحساب غير نشط. تواصل مع الدعم الفني.'
 
 const desktopLoginSchema = z.object({
-  email: z.string().email('بريد إلكتروني غير صالح'),
-  password: z.string().min(1, 'كلمة المرور مطلوبة'),
-  serial: z.string().min(1, 'السيريال مطلوب'),
-  deviceFingerprint: z.string().min(1, 'بصمة الجهاز مطلوبة'),
+  email: z.string().trim().toLowerCase().email('بريد إلكتروني غير صالح'),
+  password: z.string().min(1, 'كلمة المرور مطلوبة').max(128, 'كلمة المرور طويلة جداً'),
+  serial: z.string().trim().min(1, 'السيريال مطلوب').max(64, 'السيريال غير صالح'),
+  deviceFingerprint: z.string().trim().min(8, 'بصمة الجهاز مطلوبة').max(256, 'بصمة الجهاز طويلة جداً'),
   deviceInfo: z.object({
-    hostname: z.string().optional(),
-    platform: z.string().optional(),
-    arch: z.string().optional(),
-    cpu: z.string().optional(),
-    cpuCores: z.number().optional(),
-    ram: z.string().optional(),
-    gpu: z.string().optional(),
-    screenResolution: z.string().optional()
-  }).optional()
+    hostname: z.string().max(255).optional(),
+    platform: z.string().max(120).optional(),
+    arch: z.string().max(120).optional(),
+    cpu: z.string().max(255).optional(),
+    cpuCores: z.number().int().min(1).max(512).optional(),
+    ram: z.string().max(120).optional(),
+    gpu: z.string().max(255).optional(),
+    screenResolution: z.string().max(80).optional()
+  }).strict().optional()
 })
 
 export async function POST(req: NextRequest) {
   try {
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
+
+    const ipAddress = getClientIp(req)
+    const ipLimit = checkRateLimit(`desktop-login:ip:${ipAddress}`, 30, 15 * 60 * 1000)
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
+
     const parsed = desktopLoginSchema.safeParse(await req.json())
     if (!parsed.success) {
       const errors = parsed.error.errors.map((e) => e.message).join(', ')
@@ -35,7 +43,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password, serial, deviceFingerprint, deviceInfo } = parsed.data
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
+    const emailLimit = checkRateLimit(`desktop-login:email:${email}`, 12, 15 * 60 * 1000)
+    if (!emailLimit.allowed) return rateLimitedResponse(emailLimit.retryAfter)
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
@@ -85,13 +94,14 @@ export async function POST(req: NextRequest) {
 
     let deviceId = existingDevice?.id || inactiveDevice?.id
     await prisma.$transaction(async (tx) => {
-      if (!activationKey.userId) {
+      if (!activationKey.userId || activationKey.status === 'available' || activationKey.status === 'assigned') {
         await tx.activationKey.update({
           where: { id: activationKey.id },
           data: {
             userId: user.id,
             status: 'active',
-            activatedAt: activationKey.activatedAt || new Date()
+            activatedAt: activationKey.activatedAt || new Date(),
+            expiresAt: activationKey.expiresAt || getActivationExpiry()
           }
         })
       }
@@ -135,7 +145,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: user.id,
           action: 'desktop_login',
-          details: { keyCode: activationKey.keyCode, deviceFingerprint, deviceId },
+          details: { keyId: activationKey.id, deviceFingerprint, deviceId },
           ipAddress
         }
       })
@@ -163,7 +173,7 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : ''
     if (message.startsWith('DEVICE_LIMIT:')) {
       const limit = message.split(':')[1]
-      return NextResponse.json(errorResponse(`تم تجاوز الحد الأقصى للأجهزة (${limit}). أعد تعيين جهاز أولا`), { status: 403 })
+      return NextResponse.json(errorResponse(`تم تجاوز الحد الأقصى للأجهزة (${limit}). أعد تعيين جهاز أولاً`), { status: 403 })
     }
 
     console.error('Desktop login error:', err)

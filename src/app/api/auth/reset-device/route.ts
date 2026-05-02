@@ -1,10 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import { resetDeviceSchema } from '@/lib/validations'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
+import { checkRateLimit, getClientIp, rateLimitedResponse, rejectLargeJson } from '@/lib/request-security'
+
+async function getActor(req: NextRequest) {
+  const session = await auth()
+  if (session?.user?.id) {
+    return {
+      id: Number(session.user.id),
+      role: session.user.role || 'user'
+    }
+  }
+
+  const authHeader = req.headers.get('authorization')
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+  if (!bearer) return null
+
+  const tokenSession = await prisma.nextAuthSession.findUnique({
+    where: { sessionToken: bearer },
+    include: {
+      user: {
+        select: { id: true, role: true, status: true }
+      }
+    }
+  })
+
+  if (!tokenSession || tokenSession.expires < new Date() || tokenSession.user.status !== 'active') {
+    return null
+  }
+
+  return {
+    id: tokenSession.user.id,
+    role: tokenSession.user.role || 'user'
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const largePayload = rejectLargeJson(req, 32 * 1024)
+    if (largePayload) return largePayload
+
+    const ipAddress = getClientIp(req)
+    const ipLimit = checkRateLimit(`reset-device:ip:${ipAddress}`, 20, 15 * 60 * 1000)
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
+
+    const actor = await getActor(req)
+    if (!actor) {
+      return NextResponse.json(errorResponse('غير مصرح. يرجى تسجيل الدخول'), { status: 401 })
+    }
+
     const body = await req.json()
     const parsed = resetDeviceSchema.safeParse(body)
 
@@ -22,6 +68,14 @@ export async function POST(req: NextRequest) {
 
     if (!activationKey) {
       return NextResponse.json(errorResponse('مفتاح التفعيل غير صالح'), { status: 404 })
+    }
+
+    if (!activationKey.userId) {
+      return NextResponse.json(errorResponse('المفتاح غير مرتبط بحساب'), { status: 403 })
+    }
+
+    if (actor.role !== 'admin' && activationKey.userId !== actor.id) {
+      return NextResponse.json(errorResponse('غير مصرح بإعادة تعيين هذا الجهاز'), { status: 403 })
     }
 
     const device = activationKey.devices.find(
@@ -49,10 +103,10 @@ export async function POST(req: NextRequest) {
     if (activationKey.userId) {
       await prisma.auditLog.create({
         data: {
-          userId: activationKey.userId,
+          userId: actor.id,
           action: 'device_reset',
-          details: { deviceFingerprint, previousDeviceId: device.id },
-          ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0'
+          details: { keyCode: key, deviceFingerprint, previousDeviceId: device.id, ownerUserId: activationKey.userId },
+          ipAddress
         }
       })
     }

@@ -3,18 +3,18 @@
 ## Hosting Information
 
 - **Hosting Provider:** Hostinger
-- **Server IP:** `147.79.66.116`
-- **SSH User:** `root`
-- **SSH Command:** `ssh root@147.79.66.116`
+- **Server IP:** `<SERVER_IP>`
+- **SSH User:** `<SSH_USER>`
+- **SSH Command:** `ssh <SSH_USER>@<SERVER_IP>`
 
 ## Database Credentials
 
-- **Host:** `147.79.66.116`
+- **Host:** `<DB_HOST>`
 - **Port:** `3306`
 - **Database:** `skypro`
-- **User:** `root`
-- **Password:** `Newjoker2k333`
-- **Connection String:** `mysql://root:Newjoker2k333@147.79.66.116:3306/skypro`
+- **User:** `<DB_USER>`
+- **Password:** `<DB_PASSWORD>`
+- **Connection String:** `mysql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:3306/skypro`
 
 ## GitHub Repository
 
@@ -27,7 +27,7 @@
 
 ```bash
 # SSH into server
-ssh root@147.79.66.116
+ssh <SSH_USER>@<SERVER_IP>
 
 # Navigate to project directory
 cd /var/www/skypro.skywaveads.com
@@ -54,7 +54,7 @@ git commit -m "Your commit message"
 git push origin main
 
 # Then SSH to server and pull
-ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin main && npm run build && PORT=3200 HOSTNAME=0.0.0.0 pm2 restart skypro-web --update-env"
+ssh <SSH_USER>@<SERVER_IP> "set -e; cd /var/www/skypro.skywaveads.com; git pull origin main; npm run build; pm2 delete skypro-web || true; PORT=3200 HOSTNAME=127.0.0.1 pm2 start /var/www/skypro.skywaveads.com/.next/standalone/server.js --name skypro-web --cwd /var/www/skypro.skywaveads.com/.next/standalone --update-env; pm2 save"
 ```
 
 ## Application URLs
@@ -77,19 +77,25 @@ If the process needs to be recreated:
 ```bash
 pm2 delete skypro-web
 cd /var/www/skypro.skywaveads.com
-PORT=3200 HOSTNAME=0.0.0.0 pm2 start /var/www/skypro.skywaveads.com/.next/standalone/server.js --name skypro-web --cwd /var/www/skypro.skywaveads.com/.next/standalone --update-env
+PORT=3200 HOSTNAME=127.0.0.1 pm2 start /var/www/skypro.skywaveads.com/.next/standalone/server.js --name skypro-web --cwd /var/www/skypro.skywaveads.com/.next/standalone --update-env
 pm2 save
 ```
 
-## Admin Credentials
+## Secrets Policy
 
-- **Email:** `admin@skywaveads.com`
-- **Password:** `Admin@2026`
+- Do not store real passwords, API keys, OAuth secrets, SMTP passwords, or database root credentials in this file or in Git.
+- Keep production secrets only in `/var/www/skypro.skywaveads.com/.env` or the hosting control panel.
+- If a secret is ever committed to Git history, rotate it from the provider dashboard even after removing it from the file.
 
-## Test User Credentials
+## Admin Credentials (Template)
 
-- **Email:** `test@skywaveads.com`
-- **Password:** `Test@2026`
+- **Email:** `<ADMIN_EMAIL>`
+- **Password:** `<ADMIN_PASSWORD>`
+
+## Test User Credentials (Template)
+
+- **Email:** `<TEST_USER_EMAIL>`
+- **Password:** `<TEST_USER_PASSWORD>`
 
 ## SMTP Configuration (for sending emails)
 
@@ -100,6 +106,8 @@ SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
 SMTP_USER=admin@skywaveads.com
 SMTP_PASS=<configured-in-production-env>
+SMTP_FROM=admin@skywaveads.com
+SMTP_FROM_NAME=SkyPro
 ```
 
 SMTP is currently configured in `/var/www/skypro.skywaveads.com/.env` and verified on 2026-05-02 with sender `admin@skywaveads.com`.
@@ -107,8 +115,8 @@ SMTP is currently configured in `/var/www/skypro.skywaveads.com/.env` and verifi
 ## NEXTAUTH Configuration
 
 ```env
-NEXTAUTH_SECRET=1DyqSKlYQPk+Q6ctl7hwMPIebvYzbY7P7lCXfI1/j7Y=
-NEXTAUTH_URL=https://skypro.skywaveads.com
+NEXTAUTH_SECRET=<ROTATED_NEXTAUTH_SECRET>
+NEXTAUTH_URL=https://your-domain.example
 ```
 
 ## Useful Commands
@@ -130,7 +138,7 @@ systemctl status nginx
 systemctl restart nginx
 
 # Test database connection (on server)
-mysql -h localhost -u root -p'Newjoker2k333' skypro -e "SELECT COUNT(*) FROM users;"
+mysql -h localhost -u <DB_USER> -p'<DB_PASSWORD>' skypro -e "SELECT COUNT(*) FROM users;"
 
 # Delete all users (use with caution!)
 node /var/www/skypro.skywaveads.com/prisma/delete-all-users.cjs
