@@ -149,13 +149,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             planLabel: `تجربة مجانية لمدة ${trialDays} يوم`,
             loginMethod: 'Google'
           }
-          const { generateWelcomeEmail, generateWelcomeEmailText, sendEmail } = await import('@/lib/email')
-          await sendEmail({
-            to: newUser.email,
-            subject: 'بيانات تجربة سيندر برو المجانية',
-            text: generateWelcomeEmailText(welcomeData),
-            html: generateWelcomeEmail(welcomeData)
-          })
+          const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '')
+          if (baseUrl && process.env.NEXTAUTH_SECRET) {
+            const response = await fetch(`${baseUrl}/api/internal/welcome-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.NEXTAUTH_SECRET}`
+              },
+              body: JSON.stringify({
+                subject: 'بيانات تجربة سيندر برو المجانية',
+                welcomeData
+              })
+            })
+
+            if (!response.ok) {
+              console.error('Google welcome email failed:', response.status)
+            }
+          }
 
           token.id = String(newUser.id)
           token.role = 'user'
