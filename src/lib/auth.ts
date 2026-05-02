@@ -158,7 +158,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 Authorization: `Bearer ${process.env.NEXTAUTH_SECRET}`
               },
               body: JSON.stringify({
-                subject: 'بيانات تجربة سيندر برو المجانية',
+                subject: 'بيانات تجربة SkyPro المجانية',
                 welcomeData
               })
             })

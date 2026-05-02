@@ -23,6 +23,10 @@ export interface WelcomeEmailData {
   loginMethod?: string
 }
 
+const APP_NAME = 'SkyPro'
+const APP_WEBSITE_URL = 'https://www.skywaveads.com'
+const APP_WEBSITE_LABEL = 'www.skywaveads.com'
+
 function env(name: string): string {
   return (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '')
 }
@@ -56,7 +60,7 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions): Prom
 
   try {
     const info = await transporter.sendMail({
-      from: `"Sender Pro" <${user}>`,
+      from: `"${APP_NAME}" <${user}>`,
       replyTo: user,
       to,
       subject,
@@ -80,7 +84,7 @@ export function generateWelcomeEmailText(data: WelcomeEmailData): string {
 
   return `مرحباً ${name}
 
-تم إنشاء حسابك في سيندر برو بنجاح.
+تم إنشاء حسابك في ${APP_NAME} بنجاح.
 
 بيانات الحساب والتفعيل:
 البريد: ${data.email}
@@ -90,7 +94,8 @@ ${passwordLine}السيريال: ${data.serial}
 
 يمكنك تسجيل الدخول من لوحة الويب أو استخدام السيريال داخل تطبيق الديسكتوب.
 
-فريق سيندر برو`
+فريق ${APP_NAME}
+الموقع: ${APP_WEBSITE_LABEL}`
 }
 
 export function generateWelcomeEmail(data: WelcomeEmailData): string {
@@ -108,7 +113,7 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
         <div style="padding:24px;background:linear-gradient(135deg,#0A6CF1,#8B2CF5);color:#ffffff;text-align:center;">
           <h1 style="margin:0;font-size:24px;">مرحباً ${name}</h1>
-          <p style="margin:8px 0 0;font-size:14px;">تم إنشاء حسابك في سيندر برو بنجاح</p>
+          <p style="margin:8px 0 0;font-size:14px;">تم إنشاء حسابك في ${APP_NAME} بنجاح</p>
         </div>
 
         <div style="padding:24px;">
@@ -124,7 +129,10 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
           <p style="margin-bottom:0;color:#64748b;font-size:13px;">لو لم تطلب هذا الحساب، تجاهل هذه الرسالة.</p>
         </div>
       </div>
-      <p style="text-align:center;color:#64748b;font-size:12px;margin-top:18px;">Sky Wave Ads - Sender Pro</p>
+      <p style="text-align:center;color:#64748b;font-size:12px;margin-top:18px;">
+        ${APP_NAME}<br />
+        <a href="${APP_WEBSITE_URL}" style="color:#0A6CF1;text-decoration:none;">${APP_WEBSITE_LABEL}</a>
+      </p>
     </div>
   `
 }
