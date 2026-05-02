@@ -9,8 +9,6 @@ import { CtaSection } from '@/components/marketing/CtaSection'
 import { Footer } from '@/components/marketing/Footer'
 import { WhatsAppButton } from '@/components/marketing/WhatsAppButton'
 
-export const dynamic = 'force-dynamic'
-
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#060d1b]">
