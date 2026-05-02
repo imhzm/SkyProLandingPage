@@ -82,8 +82,10 @@ ssh root@147.79.66.116 "cd /var/www/skypro.skywaveads.com && git pull origin mai
 SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
 SMTP_USER=admin@skywaveads.com
-SMTP_PASS=your-smtp-password-here
+SMTP_PASS=<configured-in-production-env>
 ```
+
+SMTP is currently configured in `/var/www/skypro.skywaveads.com/.env` and verified on 2026-05-02 with sender `admin@skywaveads.com`.
 
 ## NEXTAUTH Configuration
 
