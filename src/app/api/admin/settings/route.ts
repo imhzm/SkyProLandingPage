@@ -23,6 +23,10 @@ const settingSchema = z.object({
   value: z.string().trim().min(1).max(40)
 })
 
+const bulkSettingsSchema = z.object({
+  settings: z.record(z.enum(allowedSettingKeys), z.string().trim().min(1).max(40))
+})
+
 function validateSettingValue(key: string, value: string) {
   if (numericSettingKeys.has(key)) {
     const numberValue = Number(value)
@@ -62,7 +66,44 @@ export async function POST(req: NextRequest) {
     const largePayload = rejectLargeJson(req, 8 * 1024)
     if (largePayload) return largePayload
 
-    const parsed = settingSchema.safeParse(await req.json())
+    const body = await req.json()
+
+    const bulkParsed = bulkSettingsSchema.safeParse(body)
+    if (bulkParsed.success) {
+      const incomingSettings = Object.entries(bulkParsed.data.settings)
+      for (const [key, value] of incomingSettings) {
+        if (!validateSettingValue(key, value)) {
+          return NextResponse.json(errorResponse(`قيمة الإعداد غير صحيحة: ${key}`), { status: 400 })
+        }
+      }
+
+      await prisma.$transaction(
+        incomingSettings.map(([key, value]) =>
+          prisma.systemSetting.upsert({
+            where: { settingKey: key },
+            update: { settingValue: value },
+            create: { settingKey: key, settingValue: value }
+          })
+        )
+      )
+
+      await prisma.auditLog.create({
+        data: {
+          userId: Number(guard.session?.user.id),
+          action: 'bulk_update_settings',
+          details: { updatedKeys: incomingSettings.map(([key]) => key) },
+          ipAddress: getClientIp(req)
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: 'تم حفظ الإعدادات بنجاح',
+        data: Object.fromEntries(incomingSettings)
+      })
+    }
+
+    const parsed = settingSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(errorResponse('إعداد غير صالح'), { status: 400 })
     }

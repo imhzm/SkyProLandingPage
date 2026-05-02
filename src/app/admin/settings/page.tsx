@@ -35,12 +35,14 @@ export default function AdminSettingsPage() {
     setSaving(true)
     setMessage('')
     try {
-      for (const [key, value] of Object.entries(settings)) {
-        await fetch('/api/admin/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, value })
-        })
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+      })
+      const data = await res.json()
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'فشل حفظ الإعدادات')
       }
       setMessage('تم حفظ الإعدادات بنجاح')
     } catch {
@@ -79,8 +81,9 @@ export default function AdminSettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {fields.map((field) => (
             <div key={field.key}>
-              <label className="admin-label">{field.label}</label>
+              <label htmlFor={`setting-${field.key}`} className="admin-label">{field.label}</label>
               <input
+                id={`setting-${field.key}`}
                 type={field.type}
                 value={settings[field.key] || ''}
                 onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
