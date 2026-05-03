@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -38,7 +39,9 @@ export function AdminSidebar() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/auth/login')
+    await signOut({ redirect: false })
+    router.replace('/auth/login')
+    router.refresh()
   }
 
   return (

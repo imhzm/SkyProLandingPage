@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { z } from 'zod'
 import { generateWelcomeEmail, generateWelcomeEmailText, sendEmail, type WelcomeEmailData } from '@/lib/email'
 import { rejectLargeJson } from '@/lib/request-security'
 
@@ -10,6 +11,19 @@ interface WelcomeEmailRequest {
   subject?: string
   welcomeData?: WelcomeEmailData
 }
+
+const welcomeEmailSchema = z.object({
+  subject: z.string().trim().min(1).max(160).optional(),
+  welcomeData: z.object({
+    name: z.string().trim().max(120).nullable().optional(),
+    email: z.string().trim().toLowerCase().email().max(254),
+    password: z.string().max(256).nullable().optional(),
+    serial: z.string().trim().min(1).max(80),
+    expiryDate: z.string().trim().min(1).max(80),
+    planLabel: z.string().trim().max(120).optional(),
+    loginMethod: z.string().trim().max(80).optional()
+  }).strict()
+}).strict()
 
 function authorized(authorization: string | null) {
   const secret = process.env.NEXTAUTH_SECRET
@@ -29,12 +43,13 @@ export async function POST(req: NextRequest) {
   const largePayload = rejectLargeJson(req, 32 * 1024)
   if (largePayload) return largePayload
 
-  const body = (await req.json()) as WelcomeEmailRequest
-  const welcomeData = body.welcomeData
-
-  if (!welcomeData?.email || !welcomeData.serial) {
+  const parsed = welcomeEmailSchema.safeParse(await req.json())
+  if (!parsed.success) {
     return NextResponse.json({ success: false, error: 'Missing welcome email data' }, { status: 400 })
   }
+
+  const body = parsed.data as WelcomeEmailRequest
+  const welcomeData = body.welcomeData!
 
   const result = await sendEmail({
     to: welcomeData.email,

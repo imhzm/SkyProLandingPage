@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Session } from 'next-auth'
 import { auth } from '@/lib/auth'
 import { errorResponse } from '@/lib/api'
-import { getClientIp, sameOrigin } from '@/lib/request-security'
+import { checkRateLimit, getClientIp, rateLimitedResponse, sameOrigin } from '@/lib/request-security'
 
 export { getClientIp }
 
@@ -27,6 +27,17 @@ export async function requireAdmin(req?: NextRequest, options: { stateChanging?:
     return {
       session,
       response: NextResponse.json(errorResponse('تم رفض الطلب لأسباب أمنية'), { status: 403 }),
+    }
+  }
+
+  if (options.stateChanging && req) {
+    const adminId = String(session.user.id || 'unknown')
+    const limit = checkRateLimit(`admin:mutation:${adminId}:${getClientIp(req)}`, 120, 15 * 60 * 1000)
+    if (!limit.allowed) {
+      return {
+        session,
+        response: rateLimitedResponse(limit.retryAfter),
+      }
     }
   }
 

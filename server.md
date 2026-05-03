@@ -116,7 +116,10 @@ SMTP is currently configured in `/var/www/skypro.skywaveads.com/.env` and verifi
 
 ```env
 NEXTAUTH_SECRET=<ROTATED_NEXTAUTH_SECRET>
-NEXTAUTH_URL=https://your-domain.example
+NEXTAUTH_URL=https://skypro.skywaveads.com
+APP_URL=https://skypro.skywaveads.com
+ALLOWED_ORIGINS=https://skypro.skywaveads.com,https://www.skywaveads.com
+TRUST_PROXY_HEADERS=true
 ```
 
 ## Useful Commands

@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getClientIp, rejectCrossSite } from '@/lib/request-security'
 
+const AUTH_COOKIE_NAMES = [
+  'authjs.session-token',
+  '__Secure-authjs.session-token',
+  'next-auth.session-token',
+  '__Secure-next-auth.session-token',
+  'next-auth.csrf-token',
+  '__Host-next-auth.csrf-token',
+  'authjs.csrf-token',
+  '__Host-authjs.csrf-token',
+]
+
 export async function POST(req: NextRequest) {
   try {
     const crossSite = rejectCrossSite(req)
@@ -28,6 +39,15 @@ export async function POST(req: NextRequest) {
       maxAge: 0,
       path: '/'
     })
+    for (const cookieName of AUTH_COOKIE_NAMES) {
+      response.cookies.set(cookieName, '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        path: '/'
+      })
+    }
 
     return response
   } catch (err) {

@@ -4,16 +4,78 @@ import { errorResponse } from '@/lib/api'
 const MAX_BUCKETS = 10000
 const buckets = new Map<string, { count: number; resetAt: number }>()
 
+function envList(name: string): string[] {
+  return (process.env[name] || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
+function trustProxyHeaders(): boolean {
+  const value = (process.env.TRUST_PROXY_HEADERS || '').trim().toLowerCase()
+  if (value) return value === 'true' || value === '1' || value === 'yes'
+  return process.env.NODE_ENV === 'production'
+}
+
+function cleanHeaderValue(value: string | null): string | null {
+  const cleaned = value?.split(',')[0]?.trim()
+  if (!cleaned || cleaned.toLowerCase() === 'unknown') return null
+  return cleaned.slice(0, 128)
+}
+
+function safeOrigin(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const parsed = new URL(value)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    return parsed.origin
+  } catch {
+    return null
+  }
+}
+
+function trustedOrigins(req?: NextRequest): Set<string> {
+  const origins = new Set<string>()
+  for (const value of [
+    process.env.NEXTAUTH_URL,
+    process.env.APP_URL,
+    ...envList('ALLOWED_ORIGINS'),
+  ]) {
+    const origin = safeOrigin(value)
+    if (origin) origins.add(origin)
+  }
+
+  if (req && origins.size === 0) {
+    const host = cleanHeaderValue(req.headers.get('host'))
+    if (host) {
+      origins.add(`https://${host}`)
+      if (process.env.NODE_ENV !== 'production') origins.add(`http://${host}`)
+    }
+
+    if (trustProxyHeaders()) {
+      const forwardedHost = cleanHeaderValue(req.headers.get('x-forwarded-host'))
+      if (forwardedHost) origins.add(`https://${forwardedHost}`)
+    }
+  }
+
+  return origins
+}
+
 export function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || '0.0.0.0'
+  if (trustProxyHeaders()) {
+    return cleanHeaderValue(req.headers.get('cf-connecting-ip'))
+      || cleanHeaderValue(req.headers.get('x-real-ip'))
+      || cleanHeaderValue(req.headers.get('x-forwarded-for'))
+      || '0.0.0.0'
+  }
+
+  return '0.0.0.0'
 }
 
 export function sameOrigin(req: NextRequest): boolean {
   const origin = req.headers.get('origin')
   const host = req.headers.get('host')
-  const forwardedHost = req.headers.get('x-forwarded-host')
+  const forwardedHost = trustProxyHeaders() ? req.headers.get('x-forwarded-host') : null
   const fetchSite = req.headers.get('sec-fetch-site')
 
   if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
@@ -24,7 +86,12 @@ export function sameOrigin(req: NextRequest): boolean {
 
   try {
     const originUrl = new URL(origin)
-    return originUrl.host === host || originUrl.host === forwardedHost
+    if (!['http:', 'https:'].includes(originUrl.protocol)) return false
+    if (process.env.NODE_ENV === 'production' && originUrl.protocol !== 'https:') return false
+    const configuredOrigins = trustedOrigins()
+    if (configuredOrigins.size > 0) return configuredOrigins.has(originUrl.origin)
+    if (trustedOrigins(req).has(originUrl.origin)) return true
+    return originUrl.host === host || (!!forwardedHost && originUrl.host === forwardedHost)
   } catch {
     return false
   }

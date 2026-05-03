@@ -3,10 +3,12 @@ import { prisma } from '@/lib/db'
 import { verifyDeviceSchema } from '@/lib/validations'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
 import { isKeyExpired, getActivationExpiry } from '@/lib/utils'
-import { getClientIp, rejectLargeJson } from '@/lib/request-security'
+import { checkRateLimit, getClientIp, rateLimitedResponse, rejectLargeJson } from '@/lib/request-security'
+
+const MAX_VERIFY_DEVICE_ATTEMPT_BUCKETS = 10000
+const verifyDeviceAttempts = new Map<string, { count: number; lockedUntil: number }>()
 
 const ACCOUNT_SUSPENDED_MESSAGE = 'تم حظر حسابك من SkyPro. تم إيقاف الدخول إلى البرنامج، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم.'
-const verifyDeviceAttempts = new Map<string, { count: number; lockedUntil: number }>()
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +16,8 @@ export async function POST(req: NextRequest) {
     if (largePayload) return largePayload
 
     const ipAddress = getClientIp(req)
+    const ipLimit = checkRateLimit(`verify-device:ip:${ipAddress}`, 60, 15 * 60 * 1000)
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
     const attempt = verifyDeviceAttempts.get(ipAddress)
     if (attempt && attempt.lockedUntil > Date.now()) {
       return NextResponse.json(errorResponse('طلبات كثيرة من نفس الشبكة. حاول لاحقًا.'), { status: 429 })
@@ -29,6 +33,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { key, deviceFingerprint, deviceInfo } = parsed.data
+    const keyLimit = checkRateLimit(`verify-device:key:${key.slice(0, 24)}`, 30, 15 * 60 * 1000)
+    if (!keyLimit.allowed) return rateLimitedResponse(keyLimit.retryAfter)
 
     const activationKey = await prisma.activationKey.findUnique({
       where: { keyCode: key },
@@ -174,6 +180,16 @@ export async function POST(req: NextRequest) {
 }
 
 function incrementVerifyAttempts(ip: string) {
+  if (verifyDeviceAttempts.size > MAX_VERIFY_DEVICE_ATTEMPT_BUCKETS) {
+    const now = Date.now()
+    verifyDeviceAttempts.forEach((value, key) => {
+      if (value.lockedUntil <= now) verifyDeviceAttempts.delete(key)
+    })
+    if (verifyDeviceAttempts.size > MAX_VERIFY_DEVICE_ATTEMPT_BUCKETS) {
+      verifyDeviceAttempts.clear()
+    }
+  }
+
   const attempt = verifyDeviceAttempts.get(ip) || { count: 0, lockedUntil: 0 }
   attempt.count++
   if (attempt.count >= 15) {

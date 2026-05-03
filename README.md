@@ -126,9 +126,12 @@ npm run build
 ### متغيرات البيئة (.env)
 
 ```env
-DATABASE_URL="mysql://user:password@localhost:3306/skypro"
+DATABASE_URL="mysql://<DB_USER>:<DB_PASSWORD>@localhost:3306/skypro"
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="https://skypro.skywaveads.com"
+APP_URL="https://skypro.skywaveads.com"
+ALLOWED_ORIGINS="https://skypro.skywaveads.com,https://www.skywaveads.com"
+TRUST_PROXY_HEADERS=true
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 DEFAULT_TRIAL_DAYS=2

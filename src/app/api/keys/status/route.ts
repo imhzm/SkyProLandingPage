@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       where: { keyCode: key },
       include: {
         devices: { where: { isActive: true } },
-        user: { select: { id: true, email: true, name: true, status: true } }
+        user: { select: { status: true } }
       }
     })
 
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       activatedAt: activationKey.activatedAt,
       expiresAt: activationKey.expiresAt,
       devicesCount: activationKey.devices.length,
-      user: activationKey.user
+      ownerStatus: activationKey.user?.status || null
     }))
   } catch (err) {
     console.error('Key status error:', err)
