@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { resetDeviceSchema } from '@/lib/validations'
 import { successResponse, errorResponse, getErrorMessage } from '@/lib/api'
-import { checkRateLimit, getClientIp, rateLimitedResponse, rejectLargeJson } from '@/lib/request-security'
+import { checkRateLimit, getClientIp, rateLimitedResponse, rejectCrossSite, rejectLargeJson } from '@/lib/request-security'
 
 async function getActor(req: NextRequest) {
   const session = await auth()
@@ -39,6 +39,9 @@ async function getActor(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const crossSite = rejectCrossSite(req)
+    if (crossSite) return crossSite
+
     const largePayload = rejectLargeJson(req, 32 * 1024)
     if (largePayload) return largePayload
 

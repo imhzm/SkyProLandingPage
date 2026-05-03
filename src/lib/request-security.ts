@@ -61,7 +61,7 @@ function trustedOrigins(req?: NextRequest): Set<string> {
   return origins
 }
 
-export function getClientIp(req: NextRequest): string {
+export function getClientIp(req: { headers: Headers }): string {
   if (trustProxyHeaders()) {
     return cleanHeaderValue(req.headers.get('cf-connecting-ip'))
       || cleanHeaderValue(req.headers.get('x-real-ip'))

@@ -85,7 +85,7 @@ skypro-web/
 | `users` | المستخدمين مع Google OAuth |
 | `accounts` | حسابات OAuth |
 | `nextauth_sessions` | جلسات NextAuth |
-| `activation_keys` | مفاتيح التفعيل (SKY1-PRO2-XXXX-2026) |
+| `activation_keys` | مفاتيح التفعيل (SKY1-PRO2-XXXXXXXX-XXXXXXXX-2026) |
 | `devices` | بصمة الأجهزة |
 | `subscriptions` | الاشتراكات والديمو |
 | `audit_log` | سجل الأحداث |

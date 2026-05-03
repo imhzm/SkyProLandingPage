@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(errorResponse('رمز التحقق مطلوب'), { status: 400 })
     }
 
+    const tokenLimit = checkRateLimit(`verify-email:token:${token.slice(0, 16)}`, 5, 60 * 60 * 1000)
+    if (!tokenLimit.allowed) return rateLimitedResponse(tokenLimit.retryAfter)
+
     const verificationToken = await prisma.verificationToken.findUnique({
       where: { token }
     })

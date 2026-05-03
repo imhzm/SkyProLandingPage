@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { generateWelcomeEmail, generateWelcomeEmailText, sendEmail, type WelcomeEmailData } from '@/lib/email'
-import { rejectLargeJson } from '@/lib/request-security'
+import { checkRateLimit, getClientIp, rateLimitedResponse, rejectLargeJson } from '@/lib/request-security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,6 +36,10 @@ function authorized(authorization: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const ipLimit = checkRateLimit(`welcome-email:ip:${ip}`, 120, 15 * 60 * 1000)
+  if (!ipLimit.allowed) return rateLimitedResponse(ipLimit.retryAfter)
+
   if (!authorized(req.headers.get('authorization'))) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
   }

@@ -16,7 +16,7 @@ export function verifyPassword(password: string, hash: string): boolean {
 
 export function generateApiKey(): string {
   const prefix = 'SKY1-PRO2'
-  const segment = () => randomHex(2).toUpperCase().padEnd(4, '0').slice(0, 4)
+  const segment = () => randomHex(4).toUpperCase()
   const year = new Date().getFullYear() + 1
   return `${prefix}-${segment()}-${segment()}-${year}`
 }

@@ -4,7 +4,7 @@ import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
 import { generateApiKey, getTrialEndDate, verifyPassword } from '@/lib/utils'
-import { checkRateLimit } from '@/lib/request-security'
+import { checkRateLimit, getClientIp } from '@/lib/request-security'
 
 async function sendWelcomeEmailThroughApi(subject: string, welcomeData: Record<string, unknown>) {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '')
@@ -39,12 +39,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: 'البريد الإلكتروني', type: 'email' },
         password: { label: 'كلمة المرور', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
 
+        const ipAddress = getClientIp(request)
+        const ipLimit = checkRateLimit(`nextauth-credentials:ip:${ipAddress}`, 20, 15 * 60 * 1000)
+        if (!ipLimit.allowed) {
+          return null
+        }
+
         const email = String(credentials.email).trim().toLowerCase()
+        const password = typeof credentials.password === 'string' ? credentials.password : ''
+        if (email.length > 254 || password.length > 128) {
+          return null
+        }
+
         const emailLimit = checkRateLimit(`nextauth-credentials:${email}`, 12, 15 * 60 * 1000)
         if (!emailLimit.allowed) {
           return null
@@ -67,7 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const isValid = verifyPassword(
-          credentials.password as string,
+          password,
           user.passwordHash
         )
 
@@ -79,7 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           data: {
             userId: user.id,
             action: 'login',
-            ipAddress: '0.0.0.0'
+            ipAddress
           }
         })
 
