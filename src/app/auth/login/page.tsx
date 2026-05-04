@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Eye, EyeOff, Mail, Lock, Send } from 'lucide-react'
 
 export default function LoginPage() {
@@ -56,10 +57,12 @@ export default function LoginPage() {
       <div className="absolute inset-0">
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-violet-500/5 rounded-full blur-[100px]" />
-        <img
+        <Image
           src="https://images.pexels.com/photos/7688336/pexels-photo-7688336.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt=""
           aria-hidden="true"
+          fill
+          sizes="100vw"
           className="absolute inset-0 h-full w-full object-cover opacity-[0.14]"
         />
       </div>
@@ -168,9 +171,11 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-            <img
+            <Image
               src="https://images.pexels.com/photos/7567434/pexels-photo-7567434.jpeg?auto=compress&cs=tinysrgb&w=1200"
               alt="لوحة تحكم لحملات التسويق"
+              width={1200}
+              height={288}
               className="h-24 w-full object-cover opacity-70"
               loading="lazy"
             />

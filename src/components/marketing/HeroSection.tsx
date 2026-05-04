@@ -3,6 +3,7 @@
 import { platforms } from '@/data/platforms'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowDown, Shield, Zap, Users, Globe } from 'lucide-react'
 import { PlatformIcon } from '@/components/marketing/PlatformIcon'
 
@@ -101,9 +102,11 @@ export function HeroSection() {
 
           <div className={`mt-14 grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 max-w-5xl mx-auto transition-all duration-700 delay-[550ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-              <img
+              <Image
                 src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1400"
                 alt="فريق تسويق رقمي يعمل على لوحة تحليل حملات"
+                width={1400}
+                height={512}
                 className="h-64 w-full object-cover opacity-70"
                 loading="lazy"
               />
@@ -119,17 +122,21 @@ export function HeroSection() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-                <img
+                <Image
                   src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=700"
                   alt="تحليل بيانات العملاء"
+                  width={700}
+                  height={256}
                   className="h-32 w-full object-cover opacity-75"
                   loading="lazy"
                 />
               </div>
               <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-                <img
+                <Image
                   src="https://images.pexels.com/photos/6956897/pexels-photo-6956897.jpeg?auto=compress&cs=tinysrgb&w=700"
                   alt="إدارة رسائل تسويقية جماعية"
+                  width={700}
+                  height={256}
                   className="h-32 w-full object-cover opacity-75"
                   loading="lazy"
                 />

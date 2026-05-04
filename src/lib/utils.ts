@@ -14,11 +14,16 @@ export function verifyPassword(password: string, hash: string): boolean {
   return bcrypt.compareSync(password, hash)
 }
 
+/**
+ * Generate a license key with 128-bit entropy (16 random bytes).
+ * Format: SKY1-PRO2-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX-YYYY
+ * Each segment is 4 random bytes (8 hex chars), providing strong brute-force resistance.
+ */
 export function generateApiKey(): string {
   const prefix = 'SKY1-PRO2'
   const segment = () => randomHex(4).toUpperCase()
   const year = new Date().getFullYear() + 1
-  return `${prefix}-${segment()}-${segment()}-${year}`
+  return `${prefix}-${segment()}-${segment()}-${segment()}-${segment()}-${year}`
 }
 
 export function generateSessionId(): string {

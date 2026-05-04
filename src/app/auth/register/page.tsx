@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Eye, EyeOff, Mail, Lock, User, Send } from 'lucide-react'
 
 export default function RegisterPage() {
@@ -60,10 +61,12 @@ export default function RegisterPage() {
       <div className="absolute inset-0">
         <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-violet-500/5 rounded-full blur-[100px]" />
-        <img
+        <Image
           src="https://images.pexels.com/photos/7681096/pexels-photo-7681096.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt=""
           aria-hidden="true"
+          fill
+          sizes="100vw"
           className="absolute inset-0 h-full w-full object-cover opacity-[0.14]"
         />
       </div>
@@ -197,17 +200,21 @@ export default function RegisterPage() {
 
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="overflow-hidden rounded-xl border border-white/10">
-              <img
+              <Image
                 src="https://images.pexels.com/photos/3184405/pexels-photo-3184405.jpeg?auto=compress&cs=tinysrgb&w=900"
                 alt="فريق التسويق يعمل على حملات العملاء"
+                width={900}
+                height={320}
                 className="h-20 w-full object-cover opacity-75"
                 loading="lazy"
               />
             </div>
             <div className="overflow-hidden rounded-xl border border-white/10">
-              <img
+              <Image
                 src="https://images.pexels.com/photos/7567558/pexels-photo-7567558.jpeg?auto=compress&cs=tinysrgb&w=900"
                 alt="تحليل أداء الحملات التسويقية"
+                width={900}
+                height={320}
                 className="h-20 w-full object-cover opacity-75"
                 loading="lazy"
               />

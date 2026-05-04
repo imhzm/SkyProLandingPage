@@ -11,10 +11,15 @@ function envList(name: string): string[] {
     .filter(Boolean)
 }
 
+/**
+ * Only trust proxy headers (X-Forwarded-For, X-Real-IP, etc.)
+ * when explicitly enabled. Default is FALSE for security.
+ * Set TRUST_PROXY_HEADERS=true only when behind a trusted reverse proxy.
+ */
 function trustProxyHeaders(): boolean {
   const value = (process.env.TRUST_PROXY_HEADERS || '').trim().toLowerCase()
-  if (value) return value === 'true' || value === '1' || value === 'yes'
-  return process.env.NODE_ENV === 'production'
+  // Default is false, only true if explicitly 'true' or '1'
+  return value === 'true' || value === '1'
 }
 
 function cleanHeaderValue(value: string | null): string | null {

@@ -3,6 +3,7 @@
 import { platforms } from '@/data/platforms'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PlatformIcon } from '@/components/marketing/PlatformIcon'
 import { ArrowLeft, Bot, Target, Users, Shield, BarChart3, Globe, Layers, Cpu } from 'lucide-react'
 
@@ -165,9 +166,11 @@ export function FeaturesSection() {
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-            <img
+            <Image
               src="https://images.pexels.com/photos/7567462/pexels-photo-7567462.jpeg?auto=compress&cs=tinysrgb&w=1400"
               alt="لوحة تسويقية تعرض تحليلات ومؤشرات أداء"
+              width={1400}
+              height={480}
               className="h-60 w-full object-cover opacity-70"
               loading="lazy"
             />
@@ -178,9 +181,11 @@ export function FeaturesSection() {
             </div>
           </div>
           <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-            <img
+            <Image
               src="https://images.pexels.com/photos/8438922/pexels-photo-8438922.jpeg?auto=compress&cs=tinysrgb&w=900"
               alt="فريق يستخدم أدوات تحليل العملاء"
+              width={900}
+              height={480}
               className="h-60 w-full object-cover opacity-75"
               loading="lazy"
             />

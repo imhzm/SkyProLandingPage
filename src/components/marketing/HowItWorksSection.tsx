@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import { Rocket, Download, Zap, ArrowLeft, Shield, Clock, Users, CheckCircle2 } from 'lucide-react'
 
 const steps = [
@@ -114,25 +115,31 @@ export function HowItWorksSection() {
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            <img
+            <Image
               src="https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=900"
               alt="تسجيل حساب جديد في منصة SaaS"
+              width={900}
+              height={288}
               className="h-36 w-full object-cover opacity-75"
               loading="lazy"
             />
           </div>
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            <img
+            <Image
               src="https://images.pexels.com/photos/6804063/pexels-photo-6804063.jpeg?auto=compress&cs=tinysrgb&w=900"
               alt="تنصيب تطبيق سطح مكتب للعمل التسويقي"
+              width={900}
+              height={288}
               className="h-36 w-full object-cover opacity-75"
               loading="lazy"
             />
           </div>
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            <img
+            <Image
               src="https://images.pexels.com/photos/7688460/pexels-photo-7688460.jpeg?auto=compress&cs=tinysrgb&w=900"
               alt="إطلاق حملة تسويق وقياس النتائج"
+              width={900}
+              height={288}
               className="h-36 w-full object-cover opacity-75"
               loading="lazy"
             />

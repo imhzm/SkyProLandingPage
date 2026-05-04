@@ -16,7 +16,6 @@ export interface EmailResult {
 export interface WelcomeEmailData {
   name?: string | null
   email: string
-  password?: string | null
   serial: string
   expiryDate: string
   planLabel?: string
@@ -137,9 +136,7 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions): Prom
 
 export function generateWelcomeEmailText(data: WelcomeEmailData): string {
   const name = data.name || 'عميلنا الكريم'
-  const passwordLine = data.password
-    ? `كلمة المرور: ${data.password}\n`
-    : `طريقة الدخول: ${data.loginMethod || 'Google'}\n`
+  const loginLine = `طريقة الدخول: ${data.loginMethod || 'استخدم كلمة المرور التي اخترتها عند التسجيل'}\n`
 
   return `مرحباً ${name}
 
@@ -147,7 +144,7 @@ export function generateWelcomeEmailText(data: WelcomeEmailData): string {
 
 بيانات الحساب والتفعيل:
 البريد: ${data.email}
-${passwordLine}السيريال: ${data.serial}
+${loginLine}السيريال: ${data.serial}
 الخطة: ${data.planLabel || 'تجربة مجانية لمدة يومين'}
 تاريخ الانتهاء: ${data.expiryDate}
 
@@ -162,16 +159,14 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
   const serial = escapeHtml(data.serial)
   const expiryDate = escapeHtml(data.expiryDate)
   const planLabel = escapeHtml(data.planLabel || 'تجربة مجانية لمدة يومين')
-  const passwordRow = data.password
-    ? `<p><strong>كلمة المرور:</strong> <code style="background:#eef2ff;padding:4px 8px;border-radius:6px;font-size:15px;">${escapeHtml(data.password)}</code></p>`
-    : `<p><strong>طريقة الدخول:</strong> ${escapeHtml(data.loginMethod || 'Google')}</p>`
+  const loginRow = `<p><strong>طريقة الدخول:</strong> ${escapeHtml(data.loginMethod || 'استخدم كلمة المرور التي اخترتها عند التسجيل')}</p>`
 
   return htmlShell(`
     <p style="margin-top:0;">مرحباً ${name}</p>
     <p>تم إنشاء حسابك في ${APP_NAME} بنجاح. هذه بيانات الحساب والتفعيل الخاصة بك:</p>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:18px 0;">
       <p><strong>البريد الإلكتروني:</strong> ${email}</p>
-      ${passwordRow}
+      ${loginRow}
       <p><strong>السيريال:</strong> <code style="background:#eef2ff;padding:4px 8px;border-radius:6px;font-size:15px;">${serial}</code></p>
       <p><strong>الخطة:</strong> ${planLabel}</p>
       <p><strong>تاريخ الانتهاء:</strong> ${expiryDate}</p>

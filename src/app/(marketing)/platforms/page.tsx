@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Image from 'next/image'
 import { platformPages, getPlatformIds } from '@/data/platform-pages'
 import { PlatformsListContent } from '@/components/marketing/PlatformsListContent'
 import { Navbar } from '@/components/marketing/Navbar'
@@ -45,10 +46,12 @@ export default function PlatformsPage() {
       <Navbar />
       <section className="relative overflow-hidden pt-28 pb-10 bg-[#060d1b]">
         <div className="absolute inset-0">
-          <img
+          <Image
             src="https://images.pexels.com/photos/7567443/pexels-photo-7567443.jpeg?auto=compress&cs=tinysrgb&w=1800"
             alt=""
             aria-hidden="true"
+            fill
+            sizes="100vw"
             className="h-full w-full object-cover opacity-[0.18]"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#060d1bcc] via-[#060d1be6] to-[#060d1b]" />

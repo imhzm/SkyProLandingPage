@@ -48,14 +48,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(successResponse({
-      key: activationKey.keyCode,
       status: activationKey.status,
-      plan: activationKey.plan,
-      maxDevices: activationKey.maxDevices,
-      activatedAt: activationKey.activatedAt,
-      expiresAt: activationKey.expiresAt,
-      devicesCount: activationKey.devices.length,
-      ownerStatus: activationKey.user?.status || null
+      valid: true
     }))
   } catch (err) {
     console.error('Key status error:', err)

@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
           name,
           passwordHash,
           role: 'user',
-          status: 'active',
-          emailVerifiedAt: new Date()
+          status: 'pending_verification',
+          emailVerifiedAt: null  // Email NOT verified until user clicks verification link
         }
       })
 
@@ -63,11 +63,11 @@ export async function POST(req: NextRequest) {
         data: {
           keyCode,
           userId: user.id,
-          status: 'active',
+          status: 'pending',  // Key stays pending until email is verified
           plan: 'trial',
           durationDays: trialDays,
           maxDevices,
-          activatedAt: new Date(),
+          activatedAt: null,  // Not activated yet
           expiresAt: trialEndsAt
         }
       })
@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
         data: {
           userId: user.id,
           keyId: activationKey.id,
-          status: 'trial',
+          status: 'pending_email',  // Will become 'trial' after email verification
           trialEndsAt,
-          startedAt: new Date(),
+          startedAt: null,
           expiresAt: trialEndsAt
         }
       })
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: user.id,
           action: 'register',
-          details: { keyId: activationKey.id, trialDays },
+          details: { keyId: activationKey.id, trialDays, pendingVerification: true },
           ipAddress
         }
       })
@@ -98,9 +98,9 @@ export async function POST(req: NextRequest) {
     const welcomeData = {
       name,
       email,
-      password,
       serial: activationKey.keyCode,
       expiryDate: trialEndsAt.toLocaleDateString('ar-EG'),
+      loginMethod: 'Use the password you chose during registration',
       planLabel: `تجربة مجانية لمدة ${trialDays} يوم`
     }
     const emailResult = await sendEmail({
@@ -115,10 +115,11 @@ export async function POST(req: NextRequest) {
       email: user.email,
       serial: activationKey.keyCode,
       trialEndsAt,
-      emailSent: emailResult.success
+      emailSent: emailResult.success,
+      pendingVerification: true
     }, emailResult.success
-      ? 'تم إنشاء الحساب وإرسال بيانات الدخول والتفعيل إلى البريد. إذا لم تظهر الرسالة في الوارد، راجع قسم Spam/Junk.'
-      : 'تم إنشاء الحساب والتجربة، لكن فشل إرسال البريد. تواصل مع الدعم للحصول على البيانات.'))
+      ? 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل التجربة المجانية. إذا لم تظهر الرسالة في الوارد، راجع قسم Spam/Junk.'
+      : 'تم إنشاء الحساب، لكن فشل إرسال البريد. تواصل مع الدعم لتفعيل حسابك.'))
   } catch (err) {
     console.error('Register error:', err)
     return NextResponse.json(errorResponse(getErrorMessage(err)), { status: 500 })
